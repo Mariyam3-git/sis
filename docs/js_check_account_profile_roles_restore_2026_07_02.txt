@@ -1,0 +1,1 @@
+Footer/profile/login inline JS syntax checked with node --check after PHP placeholders; assets/js/sis-theme.js checked.

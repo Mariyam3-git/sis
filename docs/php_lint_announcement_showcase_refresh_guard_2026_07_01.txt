@@ -1,0 +1,1 @@
+All PHP syntax checks passed (83 files).
