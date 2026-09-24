@@ -6,7 +6,6 @@ require_once dirname(__DIR__) . '/include/announcement_helpers.php';
 requireSuperAdmin();
 
 $messages = [];
-if (function_exists('sisEnsurePageAccessTable')) { $messages[] = sisEnsurePageAccessTable($conn) ? ['ok', 'Page access control table ready'] : ['err', 'Page access control table could not be created']; }
 
 function runUpgradeQuery($conn, $sql, &$messages, $label = '') {
     if (mysqli_query($conn, $sql)) {
@@ -52,6 +51,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCsrf()) {
         $messages[] = ['warn', 'Security check failed. Please refresh and try again.'];
     } else {
+    if (function_exists('sisEnsurePageAccessTable')) { $messages[] = sisEnsurePageAccessTable($conn) ? ['ok', 'Page access control table ready'] : ['err', 'Page access control table could not be created']; }
+    // Failed-login tracking table used by login.php (normally created automatically on first login attempt).
+    $messages[] = sisEnsureLoginAttemptsTable($conn) ? ['ok', 'Login attempt tracking table ready'] : ['warn', 'Login attempt tracking table could not be created'];
     runUpgradeQuery($conn, "CREATE TABLE IF NOT EXISTS complaint_reasons (
         id INT NOT NULL AUTO_INCREMENT,
         reason VARCHAR(150) NOT NULL,

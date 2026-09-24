@@ -11,8 +11,8 @@ $message = '';
 $message_type = '';
 
 // Deactivate agent (soft delete)
-if (isset($_GET['delete'])) {
-    $id = (int)$_GET['delete'];
+if (sisPostAction('delete')) {
+    $id = (int)$_POST['delete'];
     $query = "UPDATE users SET is_active = 0 WHERE id = $id AND role = 'agent'";
     if (mysqli_query($conn, $query)) {
         logAction($conn, 'DEACTIVATE_AGENT', $id);
@@ -22,8 +22,8 @@ if (isset($_GET['delete'])) {
 }
 
 // Activate agent
-if (isset($_GET['restore'])) {
-    $id = (int)$_GET['restore'];
+if (sisPostAction('restore')) {
+    $id = (int)$_POST['restore'];
     $query = "UPDATE users SET is_active = 1 WHERE id = $id AND role = 'agent'";
     if (mysqli_query($conn, $query)) {
         logAction($conn, 'ACTIVATE_AGENT', $id);
@@ -33,8 +33,8 @@ if (isset($_GET['restore'])) {
 }
 
 // PERMANENT DELETE AGENT (with dependency check)
-if (isset($_GET['hard_delete'])) {
-    $id = (int)$_GET['hard_delete'];
+if (sisPostAction('hard_delete')) {
+    $id = (int)$_POST['hard_delete'];
     
     // Check for related records before deletion
     $checks = [];
@@ -69,7 +69,7 @@ if (isset($_GET['hard_delete'])) {
             $message = 'Agent permanently deleted!';
             $message_type = 'success';
         } else {
-            $message = 'Error: ' . mysqli_error($conn);
+            $message = sisDbErrorMessage($conn);
             $message_type = 'danger';
         }
     }
@@ -77,55 +77,18 @@ if (isset($_GET['hard_delete'])) {
 
 // Add/Edit agent (unchanged)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_agent'])) {
-    $username = mysqli_real_escape_string($conn, (string)($_POST['username'] ?? ''));
-    $full_name = mysqli_real_escape_string($conn, (string)($_POST['full_name'] ?? ''));
-    $outlet_id = (int)$_POST['outlet_id'];
-    $shift = mysqli_real_escape_string($conn, (string)($_POST['shift'] ?? ''));
-    
-    // Check if username already exists (for new agents)
-    if (!isset($_POST['id']) || empty($_POST['id'])) {
-        $check_query = "SELECT id FROM users WHERE username = '$username' AND role = 'agent'";
-        $check_result = mysqli_query($conn, $check_query);
-        if (mysqli_num_rows($check_result) > 0) {
-            $message = 'Username already exists! Please choose a different username.';
-            $message_type = 'danger';
-        } else {
-            // Add new
-            $password_hash = password_hash($_POST['password'], PASSWORD_DEFAULT);
-            $query = "INSERT INTO users (username, password_hash, full_name, role, outlet_id, shift, is_active) 
-                      VALUES ('$username', '$password_hash', '$full_name', 'agent', $outlet_id, '$shift', 1)";
-            
-            if (mysqli_query($conn, $query)) {
-                $record_id = mysqli_insert_id($conn);
-                logAction($conn, 'ADD_AGENT', $record_id);
-                $message = 'Agent added successfully!';
-                $message_type = 'success';
-            } else {
-                $message = 'Error: ' . mysqli_error($conn);
-                $message_type = 'danger';
-            }
-        }
+    $editing = (int)($_POST['id'] ?? 0) > 0;
+    [$saved, $saveError, $record_id] = sisSaveStaffUser(
+        $conn, 'agent', $_POST['id'] ?? 0, $_POST['username'] ?? '', $_POST['full_name'] ?? '',
+        $_POST['outlet_id'] ?? 0, $_POST['shift'] ?? '', $_POST['password'] ?? ''
+    );
+    if ($saved) {
+        logAction($conn, $editing ? 'UPDATE_AGENT' : 'ADD_AGENT', $record_id);
+        $message = $editing ? 'Agent updated successfully!' : 'Agent added successfully!';
+        $message_type = 'success';
     } else {
-        // Edit existing agent
-        $id = (int)$_POST['id'];
-        if (!empty($_POST['password'])) {
-            $password_hash = password_hash($_POST['password'], PASSWORD_DEFAULT);
-            $query = "UPDATE users SET username = '$username', full_name = '$full_name', 
-                      outlet_id = $outlet_id, shift = '$shift', password_hash = '$password_hash' 
-                      WHERE id = $id AND role = 'agent'";
-        } else {
-            $query = "UPDATE users SET username = '$username', full_name = '$full_name', 
-                      outlet_id = $outlet_id, shift = '$shift' 
-                      WHERE id = $id AND role = 'agent'";
-        }
-        if (mysqli_query($conn, $query)) {
-            logAction($conn, 'UPDATE_AGENT', $id);
-            $message = 'Agent updated successfully!';
-            $message_type = 'success';
-        } else {
-            $message = 'Error: ' . mysqli_error($conn);
-            $message_type = 'danger';
-        }
+        $message = $saveError;
+        $message_type = 'danger';
     }
 }
 
@@ -262,8 +225,8 @@ foreach ($agents_by_region as $region_agents) {
 
         
         <?php if($message): ?>
-        <div class="alert alert-<?php echo $message_type; ?> alert-dismissible fade show" role="alert">
-            <?php echo $message; ?>
+        <div class="alert alert-<?php echo e($message_type); ?> alert-dismissible fade show" role="alert">
+            <?php echo e($message); ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         <?php endif; ?>
@@ -280,7 +243,7 @@ foreach ($agents_by_region as $region_agents) {
                     <form method="POST">
                         <input type="hidden" name="save_agent" value="1">
                         <?php if($edit_agent): ?>
-                        <input type="hidden" name="id" value="<?php echo $edit_agent['id']; ?>">
+                        <input type="hidden" name="id" value="<?php echo e($edit_agent['id']); ?>">
                         <?php endif; ?>
                         
                         <div class="mb-3">
@@ -299,7 +262,7 @@ foreach ($agents_by_region as $region_agents) {
                         
                         <div class="mb-3">
                             <label class="form-label">Password <?php echo $edit_agent ? '<small class="text-muted">(leave blank to keep current)</small>' : '<span class="text-danger">*</span>'; ?></label>
-                            <input type="password" class="form-control" name="password" 
+                            <input type="password" class="form-control" name="password" minlength="8" autocomplete="new-password"
                                    <?php echo $edit_agent ? '' : 'required'; ?>>
                         </div>
                         
@@ -311,9 +274,9 @@ foreach ($agents_by_region as $region_agents) {
                                 mysqli_data_seek($outlets_result, 0);
                                 while($outlet = mysqli_fetch_assoc($outlets_result)): 
                                 ?>
-                                <option value="<?php echo $outlet['id']; ?>" 
+                                <option value="<?php echo e($outlet['id']); ?>" 
                                     <?php echo ($edit_agent['outlet_id'] ?? '') == $outlet['id'] ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($outlet['name']); ?> (<?php echo $outlet['region']; ?>)
+                                    <?php echo htmlspecialchars($outlet['name']); ?> (<?php echo e($outlet['region']); ?>)
                                 </option>
                                 <?php endwhile; ?>
                             </select>
@@ -349,19 +312,19 @@ foreach ($agents_by_region as $region_agents) {
                         <h6 class="mb-2"><i class="bi bi-clock-history"></i> Shift Distribution</h6>
                         <div class="shift-stats">
                             <div class="shift-stat">
-                                <span class="text-primary"><?php echo $shift_counts['Morning']; ?></span>
+                                <span class="text-primary"><?php echo e($shift_counts['Morning']); ?></span>
                                 <small>Morning</small>
                             </div>
                             <div class="shift-stat">
-                                <span class="text-warning"><?php echo $shift_counts['Afternoon']; ?></span>
+                                <span class="text-warning"><?php echo e($shift_counts['Afternoon']); ?></span>
                                 <small>Afternoon</small>
                             </div>
                             <div class="shift-stat">
-                                <span class="text-info"><?php echo $shift_counts['Night']; ?></span>
+                                <span class="text-info"><?php echo e($shift_counts['Night']); ?></span>
                                 <small>Night</small>
                             </div>
                             <div class="shift-stat">
-                                <span class="text-secondary"><?php echo $shift_counts['Rotational']; ?></span>
+                                <span class="text-secondary"><?php echo e($shift_counts['Rotational']); ?></span>
                                 <small>Rotational</small>
                             </div>
                         </div>
@@ -455,7 +418,7 @@ foreach ($agents_by_region as $region_agents) {
                                                 </td>
                                                 <td>
                                                     <span class="badge <?php echo $shift_class; ?>">
-                                                        <i class="bi bi-clock"></i> <?php echo $agent['shift'] ?? 'Morning'; ?>
+                                                        <i class="bi bi-clock"></i> <?php echo e($agent['shift'] ?? 'Morning'); ?>
                                                     </span>
                                                 </td>
                                                 <td class="text-muted small">
@@ -463,16 +426,16 @@ foreach ($agents_by_region as $region_agents) {
                                                 </td>
                                                 <td>
                                                     
-                                                    <a href="?edit=<?php echo $agent['id']; ?>" class="action-btn" data-tooltip="Edit agent">
+                                                    <a href="?edit=<?php echo e($agent['id']); ?>" class="action-btn" data-tooltip="Edit agent">
                                                         <i class="bi bi-pencil-square"></i>
                                                     </a>
                                                     
-                                                    <a href="?delete=<?php echo $agent['id']; ?>" class="action-btn text-warning" 
+                                                    <a href="?delete=<?php echo e($agent['id']); ?>" class="action-btn text-warning" 
                                                        onclick="return confirm('Deactivate this agent? They will not be able to log in until reactivated.')" data-tooltip="Deactivate agent">
                                                         <i class="bi bi-person-x"></i>
                                                     </a>
                                                     
-                                                    <a href="?hard_delete=<?php echo $agent['id']; ?>" class="action-btn text-danger" 
+                                                    <a href="?hard_delete=<?php echo e($agent['id']); ?>" class="action-btn text-danger" 
                                                        onclick="return confirm('⚠️ PERMANENTLY DELETE this agent? This action cannot be undone and will remove all associated data. Deactivate is recommended unless you are sure there are no dependencies. Continue?')" 
                                                        data-tooltip="Permanently delete (irreversible)">
                                                         <i class="bi bi-trash3"></i>
@@ -541,7 +504,7 @@ foreach ($agents_by_region as $region_agents) {
                                         </td>
                                         <td>
                                             <span class="badge <?php echo $shift_class; ?>">
-                                                <i class="bi bi-clock"></i> <?php echo $agent['shift'] ?? 'Morning'; ?>
+                                                <i class="bi bi-clock"></i> <?php echo e($agent['shift'] ?? 'Morning'); ?>
                                             </span>
                                         </td>
                                         <td class="text-muted small">
@@ -549,12 +512,12 @@ foreach ($agents_by_region as $region_agents) {
                                         </td>
                                         <td>
                                             
-                                            <a href="?restore=<?php echo $agent['id']; ?>" class="action-btn text-success" 
+                                            <a href="?restore=<?php echo e($agent['id']); ?>" class="action-btn text-success" 
                                                onclick="return confirm('Activate this agent? They will be able to log in again.')" data-tooltip="Activate agent">
                                                 <i class="bi bi-person-check"></i>
                                             </a>
                                             
-                                            <a href="?hard_delete=<?php echo $agent['id']; ?>" class="action-btn text-danger" 
+                                            <a href="?hard_delete=<?php echo e($agent['id']); ?>" class="action-btn text-danger" 
                                                onclick="return confirm('⚠️ PERMANENTLY DELETE this agent? This cannot be undone!')" data-tooltip="Permanently delete">
                                                 <i class="bi bi-trash3"></i>
                                             </a>

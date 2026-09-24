@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_reconciliation
                 $message_type = 'success';
                 logAction($conn, 'UPDATE_RECONCILIATION', $outlet_id);
             } else {
-                $message = "Error: " . mysqli_error($conn);
+                $message = sisDbErrorMessage($conn);
                 $message_type = 'danger';
             }
         } else {
@@ -101,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_reconciliation
                     $message .= " Warning: There is a discrepancy of D " . number_format(abs($discrepancy), 2);
                 }
             } else {
-                $message = "Error: " . mysqli_error($conn);
+                $message = sisDbErrorMessage($conn);
                 $message_type = 'danger';
             }
         }
@@ -131,7 +131,7 @@ $discrepancy_icon = $discrepancy > 0 ? 'bi-arrow-down' : ($discrepancy < 0 ? 'bi
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cash Reconciliation - <?php echo $outlet['name']; ?></title>
+    <title>Cash Reconciliation - <?php echo e($outlet['name']); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 <link rel="stylesheet" href="<?php echo appAsset('assets/css/sis-page-components.css'); ?>">
@@ -148,9 +148,9 @@ $discrepancy_icon = $discrepancy > 0 ? 'bi-arrow-down' : ($discrepancy < 0 ? 'bi
                 <div class="col-md-8">
                     <h4 class="mb-2">💰 Cash Reconciliation</h4>
                     <p class="text-muted mb-0">
-                        <i class="bi bi-building"></i> <?php echo $outlet['name']; ?> • 
-                        <i class="bi bi-geo-alt"></i> <?php echo $outlet['location']; ?> • 
-                        <i class="bi bi-globe"></i> <?php echo $outlet['region']; ?>
+                        <i class="bi bi-building"></i> <?php echo e($outlet['name']); ?> • 
+                        <i class="bi bi-geo-alt"></i> <?php echo e($outlet['location']); ?> • 
+                        <i class="bi bi-globe"></i> <?php echo e($outlet['region']); ?>
                     </p>
                 </div>
                 <div class="col-md-4 text-md-end">
@@ -165,9 +165,9 @@ $discrepancy_icon = $discrepancy > 0 ? 'bi-arrow-down' : ($discrepancy < 0 ? 'bi
     <div class="container mb-5">
         
         <?php if($message): ?>
-        <div class="alert alert-<?php echo $message_type; ?> alert-dismissible fade show">
+        <div class="alert alert-<?php echo e($message_type); ?> alert-dismissible fade show">
             <i class="bi bi-<?php echo $message_type == 'success' ? 'check-circle' : 'exclamation-triangle'; ?> me-2"></i>
-            <?php echo $message; ?>
+            <?php echo e($message); ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         <?php endif; ?>
@@ -184,7 +184,7 @@ $discrepancy_icon = $discrepancy > 0 ? 'bi-arrow-down' : ($discrepancy < 0 ? 'bi
         <div class="date-selector">
             <div class="date-input-group">
                 <label><i class="bi bi-calendar3"></i> Select Date:</label>
-                <input type="date" id="datePicker" class="form-control" value="<?php echo $selected_date; ?>" 
+                <input type="date" id="datePicker" class="form-control" value="<?php echo e($selected_date); ?>" 
                        onchange="window.location.href='?date=' + this.value">
             </div>
             <div class="ms-auto">
@@ -227,7 +227,7 @@ $discrepancy_icon = $discrepancy > 0 ? 'bi-arrow-down' : ($discrepancy < 0 ? 'bi
             
             <div class="stat-card count">
                 <h6><i class="bi bi-receipt"></i> Transactions</h6>
-                <h2><?php echo $sales_data['transaction_count'] ?? 0; ?></h2>
+                <h2><?php echo e($sales_data['transaction_count'] ?? 0); ?></h2>
                 <small>
                     P: <?php echo number_format($sales_data['pending_amount'] ?? 0, 0); ?> | 
                     U: <?php echo number_format($sales_data['unpaid_amount'] ?? 0, 0); ?>
@@ -253,7 +253,7 @@ $discrepancy_icon = $discrepancy > 0 ? 'bi-arrow-down' : ($discrepancy < 0 ? 'bi
                         <table class="table table-sm">
                             <tr>
                                 <td>Total Paid Transactions:</td>
-                                <td class="fw-bold"><?php echo $sales_data['transaction_count'] ?? 0; ?></td>
+                                <td class="fw-bold"><?php echo e($sales_data['transaction_count'] ?? 0); ?></td>
                             </tr>
                             <tr>
                                 <td>Paid Positive Sales:</td>
@@ -285,7 +285,7 @@ $discrepancy_icon = $discrepancy > 0 ? 'bi-arrow-down' : ($discrepancy < 0 ? 'bi
                             <p class="mb-1"><strong>Reconciled By:</strong> <?php echo $existing_reconciliation['agent_id'] == $_SESSION['user_id'] ? 'You' : 'Another supervisor'; ?></p>
                             <p class="mb-1"><strong>Date/Time:</strong> <?php echo date('d/m/Y H:i', strtotime($existing_reconciliation['reconciled_at'] ?? $existing_reconciliation['reconciliation_date'])); ?></p>
                             <?php if($existing_reconciliation['notes']): ?>
-                            <p class="mb-0"><strong>Notes:</strong> <?php echo $existing_reconciliation['notes']; ?></p>
+                            <p class="mb-0"><strong>Notes:</strong> <?php echo e($existing_reconciliation['notes']); ?></p>
                             <?php endif; ?>
                         </div>
                         <?php endif; ?>
@@ -300,7 +300,7 @@ $discrepancy_icon = $discrepancy > 0 ? 'bi-arrow-down' : ($discrepancy < 0 ? 'bi
                             </h5>
                             
                             <form method="POST">
-                                <input type="hidden" name="reconciliation_date" value="<?php echo $selected_date; ?>">
+                                <input type="hidden" name="reconciliation_date" value="<?php echo e($selected_date); ?>">
                                 
                                 <div class="mb-4">
                                     <label class="form-label">Actual Cash Counted (D)</label>
@@ -308,7 +308,7 @@ $discrepancy_icon = $discrepancy > 0 ? 'bi-arrow-down' : ($discrepancy < 0 ? 'bi
                                         <span class="input-group-text">D</span>
                                         <input type="number" step="0.01" class="form-control form-control-lg" 
                                                name="actual_amount" 
-                                               value="<?php echo $existing_reconciliation['actual_amount'] ?? ''; ?>" 
+                                               value="<?php echo e($existing_reconciliation['actual_amount'] ?? ''); ?>" 
                                                placeholder="Enter amount counted"
                                                <?php echo $existing_reconciliation ? '' : 'required'; ?>>
                                     </div>
@@ -318,7 +318,7 @@ $discrepancy_icon = $discrepancy > 0 ? 'bi-arrow-down' : ($discrepancy < 0 ? 'bi
                                 <div class="mb-4">
                                     <label class="form-label">Notes / Explanation</label>
                                     <textarea class="form-control" name="notes" rows="3" 
-                                              placeholder="Any discrepancies or notes about today's cash count"><?php echo $existing_reconciliation['notes'] ?? ''; ?></textarea>
+                                              placeholder="Any discrepancies or notes about today's cash count"><?php echo e($existing_reconciliation['notes'] ?? ''); ?></textarea>
                                 </div>
                                 
                                 <?php if(!$existing_reconciliation && $expected_amount > 0): ?>
@@ -333,7 +333,7 @@ $discrepancy_icon = $discrepancy > 0 ? 'bi-arrow-down' : ($discrepancy < 0 ? 'bi
                                     <button type="submit" name="submit_reconciliation" class="btn btn-primary flex-grow-1">
                                         <i class="bi bi-check-circle"></i> Update Reconciliation
                                     </button>
-                                    <a href="?date=<?php echo $selected_date; ?>&reset=1" class="btn btn-outline-secondary">
+                                    <a href="?date=<?php echo e($selected_date); ?>&reset=1" class="btn btn-outline-secondary">
                                         <i class="bi bi-arrow-counterclockwise"></i> Reset
                                     </a>
                                 </div>
@@ -383,8 +383,8 @@ $discrepancy_icon = $discrepancy > 0 ? 'bi-arrow-down' : ($discrepancy < 0 ? 'bi
                                 <?php while($t = mysqli_fetch_assoc($transactions)): ?>
                                 <tr>
                                     <td><?php echo date('H:i', strtotime($t['payment_date'])); ?></td>
-                                    <td><small><?php echo $t['invoice_number'] ?? '—'; ?></small></td>
-                                    <td><?php echo $t['visitor_name'] ?? '—'; ?></td>
+                                    <td><small><?php echo e($t['invoice_number'] ?? '—'); ?></small></td>
+                                    <td><?php echo e($t['visitor_name'] ?? '—'); ?></td>
                                     <td class="fw-bold text-success">D <?php echo number_format($t['amount'], 2); ?></td>
                                 </tr>
                                 <?php endwhile; ?>
@@ -441,7 +441,7 @@ $discrepancy_icon = $discrepancy > 0 ? 'bi-arrow-down' : ($discrepancy < 0 ? 'bi
                                         <?php echo ($disc > 0 ? '-' : ($disc < 0 ? '+' : '')); ?>
                                         D <?php echo number_format(abs($disc), 2); ?>
                                     </td>
-                                    <td><?php echo $h['reconciled_by'] ?? '—'; ?></td>
+                                    <td><?php echo e($h['reconciled_by'] ?? '—'); ?></td>
                                     <td>
                                         <?php if($disc == 0): ?>
                                         <span class="badge-paid">✓ Exact</span>

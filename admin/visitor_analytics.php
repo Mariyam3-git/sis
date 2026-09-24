@@ -153,7 +153,7 @@ $busiest_day = mysqli_fetch_assoc(mysqli_query($conn, "
                     <select class="form-select" name="outlet_id">
                         <option value="0">All Outlets</option>
                         <?php while($o = mysqli_fetch_assoc($outlets)): ?>
-                        <option value="<?php echo $o['id']; ?>" <?php echo $outlet_filter == $o['id'] ? 'selected' : ''; ?>>
+                        <option value="<?php echo e($o['id']); ?>" <?php echo $outlet_filter == $o['id'] ? 'selected' : ''; ?>>
                             <?php echo e($o['name']); ?>
                         </option>
                         <?php endwhile; ?>
@@ -164,7 +164,7 @@ $busiest_day = mysqli_fetch_assoc(mysqli_query($conn, "
                     <select class="form-select" name="agent_id">
                         <option value="0">All Agents</option>
                         <?php while($a = mysqli_fetch_assoc($agents)): ?>
-                        <option value="<?php echo $a['id']; ?>" <?php echo $agent_filter == $a['id'] ? 'selected' : ''; ?>>
+                        <option value="<?php echo e($a['id']); ?>" <?php echo $agent_filter == $a['id'] ? 'selected' : ''; ?>>
                             <?php echo e($a['full_name']); ?>
                         </option>
                         <?php endwhile; ?>
@@ -191,7 +191,7 @@ $busiest_day = mysqli_fetch_assoc(mysqli_query($conn, "
             <div class="stat-card">
                 <h6>Busiest Day</h6>
                 <h2><?php echo $busiest_day['date'] ? date('d M', strtotime($busiest_day['date'])) : '—'; ?></h2>
-                <small><?php echo $busiest_day['total']; ?> visitors</small>
+                <small><?php echo e($busiest_day['total']); ?> visitors</small>
             </div>
             <div class="stat-card">
                 <h6>Active Agents</h6>
@@ -227,8 +227,8 @@ $busiest_day = mysqli_fetch_assoc(mysqli_query($conn, "
                                 <td><strong><?php echo e($a['agent_name']); ?></strong></td>
                                 <td><?php echo e($a['outlet_name']); ?></td>
                                 <td><span class="badge bg-info"><?php echo e($a['shift']); ?></span></td>
-                                <td class="fw-bold"><?php echo $a['total_visitors']; ?></td>
-                                <td><?php echo $a['completed']; ?></td>
+                                <td class="fw-bold"><?php echo e($a['total_visitors']); ?></td>
+                                <td><?php echo e($a['completed']); ?></td>
                                 <td>
                                     <span class="badge bg-<?php echo $completion_rate >= 70 ? 'success' : ($completion_rate >= 40 ? 'warning' : 'danger'); ?>">
                                         <?php echo $completion_rate; ?>%
@@ -262,9 +262,9 @@ $busiest_day = mysqli_fetch_assoc(mysqli_query($conn, "
                             <tr>
                                 <td><strong><?php echo e($o['outlet_name']); ?></strong></td>
                                 <td><?php echo e($o['region']); ?></td>
-                                <td class="fw-bold"><?php echo $o['total_visitors']; ?></td>
-                                <td><?php echo $o['active_agents']; ?></td>
-                                <td><?php echo $o['avg_daily']; ?></td>
+                                <td class="fw-bold"><?php echo e($o['total_visitors']); ?></td>
+                                <td><?php echo e($o['active_agents']); ?></td>
+                                <td><?php echo e($o['avg_daily']); ?></td>
                             </tr>
                             <?php endwhile; ?>
                         </tbody>
@@ -312,7 +312,7 @@ $busiest_day = mysqli_fetch_assoc(mysqli_query($conn, "
                         <tr>
                             <td><?php echo e($p['purpose_name']); ?></td>
                             <td><span class="badge bg-info"><?php echo e($p['category_name'] ?? 'Uncategorized'); ?></span></td>
-                            <td class="fw-bold"><?php echo $p['visit_count']; ?></td>
+                            <td class="fw-bold"><?php echo e($p['visit_count']); ?></td>
                             <td>
                                 <div class="d-flex align-items-center">
                                     <div class="progress flex-grow-1 me-2 sis-u-d8269867">
@@ -332,8 +332,8 @@ $busiest_day = mysqli_fetch_assoc(mysqli_query($conn, "
     <script>        const hourlyLabels = [];
         const hourlyCounts = [];
         <?php while($h = mysqli_fetch_assoc($hourly_data)): ?>
-        hourlyLabels.push('<?php echo $h['hour']; ?>:00');
-        hourlyCounts.push(<?php echo $h['visit_count']; ?>);
+        hourlyLabels.push('<?php echo e($h['hour']); ?>:00');
+        hourlyCounts.push(<?php echo e($h['visit_count']); ?>);
         <?php endwhile; ?>
 
         new Chart(document.getElementById('hourlyChart'), {

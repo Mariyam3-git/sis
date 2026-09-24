@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $selling_price = (float)$_POST['selling_price'];
     $supplier = mysqli_real_escape_string($conn, (string)($_POST['supplier'] ?? ''));
     $batch_number = mysqli_real_escape_string($conn, (string)($_POST['batch_number'] ?? ''));
-    $expiry_date = !empty($_POST['expiry_date']) ? "'" . $_POST['expiry_date'] . "'" : 'NULL';
+    $expiry_date = sisCleanDate($_POST['expiry_date'] ?? '') !== '' ? "'" . sisCleanDate($_POST['expiry_date']) . "'" : 'NULL';
     $notes = mysqli_real_escape_string($conn, (string)($_POST['notes'] ?? ''));
     
     // Validation
@@ -56,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             )";
             
             if (!mysqli_query($conn, $batch_query)) {
-                throw new Exception("Error creating batch: " . mysqli_error($conn));
+                throw new Exception(sisDbErrorMessage($conn));
             }
             
             $batch_id = mysqli_insert_id($conn);
@@ -96,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             )";
             
             if (!mysqli_query($conn, $movement)) {
-                throw new Exception("Error recording movement: " . mysqli_error($conn));
+                throw new Exception(sisDbErrorMessage($conn));
             }
             
             // Resolve any low stock alerts for this product
@@ -122,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message_type = 'danger';
         }
     } else {
-        $message = implode('<br>', $errors);
+        $message = implode(' | ', $errors);
         $message_type = 'danger';
     }
 }
@@ -185,7 +185,7 @@ $total_value_month = mysqli_fetch_assoc(mysqli_query($conn, "
         <div class="stats-grid">
             <div class="stat-card">
                 <h6>This Month</h6>
-                <h2><?php echo $total_received_month['count'] ?? 0; ?></h2>
+                <h2><?php echo e($total_received_month['count'] ?? 0); ?></h2>
                 <small>Receipts</small>
             </div>
             <div class="stat-card">
@@ -207,9 +207,9 @@ $total_value_month = mysqli_fetch_assoc(mysqli_query($conn, "
 
         
         <?php if($message): ?>
-        <div class="alert alert-<?php echo $message_type; ?> alert-dismissible fade show">
+        <div class="alert alert-<?php echo e($message_type); ?> alert-dismissible fade show">
             <i class="bi bi-<?php echo $message_type == 'success' ? 'check-circle' : 'exclamation-triangle'; ?> me-2"></i>
-            <?php echo $message; ?>
+            <?php echo e($message); ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         <?php endif; ?>
@@ -228,7 +228,7 @@ $total_value_month = mysqli_fetch_assoc(mysqli_query($conn, "
                             <select class="form-select" name="outlet_id" required>
                                 <option value="">Select Outlet</option>
                                 <?php while($o = mysqli_fetch_assoc($outlets)): ?>
-                                <option value="<?php echo $o['id']; ?>"><?php echo $o['name']; ?></option>
+                                <option value="<?php echo e($o['id']); ?>"><?php echo e($o['name']); ?></option>
                                 <?php endwhile; ?>
                             </select>
                         </div>
@@ -238,10 +238,10 @@ $total_value_month = mysqli_fetch_assoc(mysqli_query($conn, "
                             <select class="form-select" name="product_id" id="productSelect" required>
                                 <option value="">Select Product</option>
                                 <?php while($p = mysqli_fetch_assoc($products)): ?>
-                                <option value="<?php echo $p['id']; ?>" 
-                                        data-price="<?php echo $p['selling_price']; ?>"
-                                        data-cost="<?php echo $p['unit_price']; ?>">
-                                    <?php echo $p['name']; ?> (<?php echo $p['sku']; ?>)
+                                <option value="<?php echo e($p['id']); ?>" 
+                                        data-price="<?php echo e($p['selling_price']); ?>"
+                                        data-cost="<?php echo e($p['unit_price']); ?>">
+                                    <?php echo e($p['name']); ?> (<?php echo e($p['sku']); ?>)
                                 </option>
                                 <?php endwhile; ?>
                             </select>
@@ -275,7 +275,7 @@ $total_value_month = mysqli_fetch_assoc(mysqli_query($conn, "
                                     <option value="Nokia">Nokia</option>
                                     <option value="Ericsson">Ericsson</option>
                                     <?php while($sup = mysqli_fetch_assoc($suppliers)): ?>
-                                    <option value="<?php echo $sup['supplier']; ?>">
+                                    <option value="<?php echo e($sup['supplier']); ?>">
                                     <?php endwhile; ?>
                                 </datalist>
                                 <small class="text-muted">Type "Comium" or "Huawei" for quick entry</small>
@@ -351,20 +351,20 @@ $total_value_month = mysqli_fetch_assoc(mysqli_query($conn, "
                                 <tr>
                                     <td><?php echo date('d/m/Y', strtotime($r['received_date'])); ?></td>
                                     <td>
-                                        <strong><?php echo $r['product_name']; ?></strong>
+                                        <strong><?php echo e($r['product_name']); ?></strong>
                                     </td>
-                                    <td><?php echo $r['outlet_name']; ?></td>
-                                    <td class="fw-bold"><?php echo $r['quantity']; ?></td>
+                                    <td><?php echo e($r['outlet_name']); ?></td>
+                                    <td class="fw-bold"><?php echo e($r['quantity']); ?></td>
                                     <td>
                                         <?php if($r['supplier']): ?>
                                         <span class="supplier-badge <?php echo $supplier_class; ?>">
-                                            <?php echo $r['supplier']; ?>
+                                            <?php echo e($r['supplier']); ?>
                                         </span>
                                         <?php else: ?>
                                         -
                                         <?php endif; ?>
                                     </td>
-                                    <td><?php echo $r['received_by']; ?></td>
+                                    <td><?php echo e($r['received_by']); ?></td>
                                 </tr>
                                 <?php endwhile; ?>
                             <?php else: ?>

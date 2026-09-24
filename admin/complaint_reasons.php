@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $message = 'Main/Sub reason added successfully.';
                     logAction($conn, 'ADD_SUPPORT_REASON', mysqli_insert_id($conn));
                 } else {
-                    $message = 'Could not add reason: ' . mysqli_error($conn);
+                    $message = sisDbErrorMessage($conn);
                     $message_type = 'danger';
                 }
             }
@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $message = 'Reason updated successfully.';
                     logAction($conn, 'UPDATE_SUPPORT_REASON', $id);
                 } else {
-                    $message = 'Could not update reason: ' . mysqli_error($conn);
+                    $message = sisDbErrorMessage($conn);
                     $message_type = 'danger';
                 }
             }

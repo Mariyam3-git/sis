@@ -115,11 +115,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <div class="card-body">
                 <?php if($error): ?>
-                    <div class="alert alert-danger"><?php echo $error; ?></div>
+                    <div class="alert alert-danger"><?php echo e($error); ?></div>
                 <?php endif; ?>
                 
                 <?php if($success): ?>
-                    <div class="alert alert-success"><?php echo $success; ?></div>
+                    <div class="alert alert-success"><?php echo e($success); ?></div>
                 <?php endif; ?>
                 
                 <div class="mb-4">
@@ -144,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     <?php else: ?>
                         <div class="alert alert-info service-badge">
-                            <i class="bi bi-tag"></i> Fixed Price: $<?php echo $visitor['fixed_price']; ?>
+                            <i class="bi bi-tag"></i> Fixed Price: $<?php echo e($visitor['fixed_price']); ?>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -157,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <label class="form-label">Amount ($)</label>
                         <input type="number" step="0.01" class="form-control form-control-lg" 
                                name="amount" 
-                               value="<?php echo $visitor['fixed_price'] ?? ''; ?>"
+                               value="<?php echo e($visitor['fixed_price'] ?? ''); ?>"
                                <?php echo $visitor['is_fixed_price'] ? 'readonly' : ''; ?>
                                required>
                         <?php if($visitor['is_fixed_price']): ?>

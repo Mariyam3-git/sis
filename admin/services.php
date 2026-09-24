@@ -116,7 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf() && isset($_POST['save_
         $message = 'Service saved successfully!';
         $message_type = 'success';
     } else {
-        $message = 'Error: ' . mysqli_error($conn);
+        $message = sisDbErrorMessage($conn);
         $message_type = 'danger';
     }
 }
@@ -235,9 +235,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
         
         <?php if($message): ?>
-        <div class="alert alert-<?php echo $message_type; ?> alert-dismissible fade show" role="alert">
+        <div class="alert alert-<?php echo e($message_type); ?> alert-dismissible fade show" role="alert">
             <i class="bi bi-<?php echo $message_type == 'success' ? 'check-circle' : 'exclamation-triangle'; ?>"></i>
-            <?php echo $message; ?>
+            <?php echo e($message); ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         <?php endif; ?>
@@ -279,7 +279,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         <?php echo csrfField(); ?>
                         <input type="hidden" name="save_service" value="1">
                         <?php if($edit_service): ?>
-                        <input type="hidden" name="id" value="<?php echo $edit_service['id']; ?>">
+                        <input type="hidden" name="id" value="<?php echo e($edit_service['id']); ?>">
                         <?php endif; ?>
                         
                         <div class="mb-3">
@@ -310,7 +310,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         <div id="fixedPriceSection" class="mb-3">
                             <label class="form-label">Price (D)</label>
                             <input type="number" step="0.01" class="form-control" name="price" id="fixedPrice"
-                                   value="<?php echo $edit_service['price'] ?? '0.00'; ?>">
+                                   value="<?php echo e($edit_service['price'] ?? '0.00'); ?>">
                         </div>
                         
                         <div class="sis-u-224b51a7" id="flexiblePriceSection">
@@ -318,12 +318,12 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                 <div class="col-6">
                                     <label class="form-label">Min Amount</label>
                                     <input type="number" step="0.01" class="form-control" name="min_amount" id="minAmount"
-                                           value="<?php echo $edit_service['min_amount'] ?? ''; ?>" placeholder="Optional">
+                                           value="<?php echo e($edit_service['min_amount'] ?? ''); ?>" placeholder="Optional">
                                 </div>
                                 <div class="col-6">
                                     <label class="form-label">Max Amount</label>
                                     <input type="number" step="0.01" class="form-control" name="max_amount" id="maxAmount"
-                                           value="<?php echo $edit_service['max_amount'] ?? ''; ?>" placeholder="Optional">
+                                           value="<?php echo e($edit_service['max_amount'] ?? ''); ?>" placeholder="Optional">
                                 </div>
                             </div>
                         </div>
@@ -340,7 +340,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                             <div id="quantityDetails" class="mb-3 <?php echo (isset($edit_service['is_quantity_based']) && $edit_service['is_quantity_based'] == 1) ? '' : 'sis-hidden'; ?>">
                                 <label class="form-label">Unit Name</label>
                                 <input type="text" class="form-control" name="unit_name" placeholder="e.g., SIM, GB, minute"
-                                       value="<?php echo $edit_service['unit_name'] ?? 'unit'; ?>">
+                                       value="<?php echo e($edit_service['unit_name'] ?? 'unit'); ?>">
                                 <small class="text-muted">Price per unit × quantity</small>
                             </div>
                         </div>
@@ -431,7 +431,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                              </td>
                                             <td>
                                                 <div class="d-flex gap-1">
-                                                    <a href="?edit=<?php echo $service['id']; ?>" class="action-btn" title="Edit">
+                                                    <a href="?edit=<?php echo e($service['id']); ?>" class="action-btn" title="Edit">
                                                         <i class="bi bi-pencil"></i>
                                                     </a>
                                                     <form method="post" class="d-inline"><?php echo csrfField(); ?><input type="hidden" name="toggle_paid" value="<?php echo (int)$service['id']; ?>"><button class="action-btn text-info border-0 bg-transparent" title="Toggle Free"><i class="bi bi-gift"></i></button></form>
@@ -483,7 +483,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                              </td>
                                             <td>
                                                 <div class="d-flex gap-1">
-                                                    <a href="?edit=<?php echo $service['id']; ?>" class="action-btn" title="Edit">
+                                                    <a href="?edit=<?php echo e($service['id']); ?>" class="action-btn" title="Edit">
                                                         <i class="bi bi-pencil"></i>
                                                     </a>
                                                     <form method="post" class="d-inline"><?php echo csrfField(); ?><input type="hidden" name="toggle_paid" value="<?php echo (int)$service['id']; ?>"><button class="action-btn text-success border-0 bg-transparent" title="Make Paid"><i class="bi bi-cash"></i></button></form>

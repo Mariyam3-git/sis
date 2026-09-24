@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_visitor'])) {
             $message = "✓ Visitor '{$visitor['name']}' and their {$sales_data['count']} transaction(s) deleted successfully!";
             $message_type = 'success';
         } else {
-            $message = "Error deleting visitor: " . mysqli_error($conn);
+            $message = sisDbErrorMessage($conn);
             $message_type = 'danger';
         }
     } else {
@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_sale'])) {
                 $message .= " Visitor now has no transactions.";
             }
         } else {
-            $message = "Error deleting sale: " . mysqli_error($conn);
+            $message = sisDbErrorMessage($conn);
             $message_type = 'danger';
         }
     } else {
@@ -80,8 +80,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_sale'])) {
 
 // Get filter parameters
 $search = isset($_GET['search']) ? mysqli_real_escape_string($conn, (string)($_GET['search'] ?? '')) : '';
-$date_from = isset($_GET['date_from']) ? $_GET['date_from'] : '';
-$date_to = isset($_GET['date_to']) ? $_GET['date_to'] : '';
+$date_from = sisCleanDate($_GET['date_from'] ?? '', '');
+$date_to = sisCleanDate($_GET['date_to'] ?? '', '');
 $outlet_filter = isset($_GET['outlet_id']) ? (int)$_GET['outlet_id'] : '';
 
 // Build WHERE clause - FIXED: removed p.name and s.name references
@@ -169,9 +169,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
         </div>
 
         <?php if(isset($message) && $message): ?>
-        <div class="alert alert-<?php echo $message_type; ?> alert-dismissible fade show">
+        <div class="alert alert-<?php echo e($message_type); ?> alert-dismissible fade show">
             <i class="bi bi-<?php echo $message_type == 'success' ? 'check-circle-fill' : 'exclamation-triangle-fill'; ?> me-2"></i>
-            <?php echo $message; ?>
+            <?php echo e($message); ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         <?php endif; ?>
@@ -206,11 +206,11 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     </div>
                     <div class="filter-group">
                         <label><i class="bi bi-calendar"></i> From Date</label>
-                        <input type="date" name="date_from" class="form-control sis-w-150" value="<?php echo $date_from; ?>">
+                        <input type="date" name="date_from" class="form-control sis-w-150" value="<?php echo e($date_from); ?>">
                     </div>
                     <div class="filter-group">
                         <label><i class="bi bi-calendar"></i> To Date</label>
-                        <input type="date" name="date_to" class="form-control sis-w-150" value="<?php echo $date_to; ?>">
+                        <input type="date" name="date_to" class="form-control sis-w-150" value="<?php echo e($date_to); ?>">
                     </div>
                     <div class="filter-group">
                         <label><i class="bi bi-building"></i> Outlet</label>
@@ -220,7 +220,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                             mysqli_data_seek($outlets_result, 0);
                             while($outlet = mysqli_fetch_assoc($outlets_result)): 
                             ?>
-                            <option value="<?php echo $outlet['id']; ?>" <?php echo $outlet_filter == $outlet['id'] ? 'selected' : ''; ?>>
+                            <option value="<?php echo e($outlet['id']); ?>" <?php echo $outlet_filter == $outlet['id'] ? 'selected' : ''; ?>>
                                 <?php echo htmlspecialchars($outlet['name']); ?>
                             </option>
                             <?php endwhile; ?>
@@ -284,7 +284,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                     <td><?php echo htmlspecialchars($visitor['outlet_name'] ?? '—'); ?></td>
                                     <td>
                                         <span class="badge-transactions">
-                                            <i class="bi bi-receipt"></i> <?php echo $visitor['transaction_count']; ?> transactions
+                                            <i class="bi bi-receipt"></i> <?php echo e($visitor['transaction_count']); ?> transactions
                                         </span>
                                      </td>
                                     <td>
@@ -300,12 +300,12 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                      </td>
                                     <td>
                                         <div class="btn-group" role="group">
-                                            <button type="button" class="btn btn-info btn-sm" onclick="viewVisitorDetails(<?php echo $visitor['id']; ?>)" title="View Details">
+                                            <button type="button" class="btn btn-info btn-sm" onclick="viewVisitorDetails(<?php echo e($visitor['id']); ?>)" title="View Details">
                                                 <i class="bi bi-eye"></i>
                                             </button>
                                             <form class="sis-u-3df0a395" method="POST" onsubmit="return confirm('⚠️ WARNING: This will delete the visitor and ALL their transactions! This action cannot be undone. Are you absolutely sure?')">
                                                 <?php echo csrfField(); ?>
-                                                <input type="hidden" name="visitor_id" value="<?php echo $visitor['id']; ?>">
+                                                <input type="hidden" name="visitor_id" value="<?php echo e($visitor['id']); ?>">
                                                 <button type="submit" name="delete_visitor" class="btn btn-danger btn-sm" title="Delete Visitor & All Records">
                                                     <i class="bi bi-trash"></i>
                                                 </button>
@@ -332,7 +332,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <nav aria-label="Page navigation" class="mt-4 mb-3">
                     <ul class="pagination justify-content-center">
                         <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
-                            <a class="page-link" href="?page=<?php echo $page - 1; ?>&search=<?php echo urlencode($search); ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&outlet_id=<?php echo $outlet_filter; ?>">
+                            <a class="page-link" href="?page=<?php echo $page - 1; ?>&search=<?php echo urlencode($search); ?>&date_from=<?php echo e($date_from); ?>&date_to=<?php echo e($date_to); ?>&outlet_id=<?php echo $outlet_filter; ?>">
                                 <i class="bi bi-chevron-left"></i> Previous
                             </a>
                         </li>
@@ -341,7 +341,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         $end_page = min($total_pages, $page + 2);
                         if($start_page > 1): ?>
                         <li class="page-item">
-                            <a class="page-link" href="?page=1&search=<?php echo urlencode($search); ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&outlet_id=<?php echo $outlet_filter; ?>">1</a>
+                            <a class="page-link" href="?page=1&search=<?php echo urlencode($search); ?>&date_from=<?php echo e($date_from); ?>&date_to=<?php echo e($date_to); ?>&outlet_id=<?php echo $outlet_filter; ?>">1</a>
                         </li>
                         <?php if($start_page > 2): ?>
                         <li class="page-item disabled"><span class="page-link">...</span></li>
@@ -349,7 +349,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         
                         <?php for($i = $start_page; $i <= $end_page; $i++): ?>
                         <li class="page-item <?php echo $page == $i ? 'active' : ''; ?>">
-                            <a class="page-link" href="?page=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&outlet_id=<?php echo $outlet_filter; ?>"><?php echo $i; ?></a>
+                            <a class="page-link" href="?page=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>&date_from=<?php echo e($date_from); ?>&date_to=<?php echo e($date_to); ?>&outlet_id=<?php echo $outlet_filter; ?>"><?php echo $i; ?></a>
                         </li>
                         <?php endfor; ?>
                         
@@ -358,12 +358,12 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         <li class="page-item disabled"><span class="page-link">...</span></li>
                         <?php endif; ?>
                         <li class="page-item">
-                            <a class="page-link" href="?page=<?php echo $total_pages; ?>&search=<?php echo urlencode($search); ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&outlet_id=<?php echo $outlet_filter; ?>"><?php echo $total_pages; ?></a>
+                            <a class="page-link" href="?page=<?php echo $total_pages; ?>&search=<?php echo urlencode($search); ?>&date_from=<?php echo e($date_from); ?>&date_to=<?php echo e($date_to); ?>&outlet_id=<?php echo $outlet_filter; ?>"><?php echo $total_pages; ?></a>
                         </li>
                         <?php endif; ?>
                         
                         <li class="page-item <?php echo $page >= $total_pages ? 'disabled' : ''; ?>">
-                            <a class="page-link" href="?page=<?php echo $page + 1; ?>&search=<?php echo urlencode($search); ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&outlet_id=<?php echo $outlet_filter; ?>">
+                            <a class="page-link" href="?page=<?php echo $page + 1; ?>&search=<?php echo urlencode($search); ?>&date_from=<?php echo e($date_from); ?>&date_to=<?php echo e($date_to); ?>&outlet_id=<?php echo $outlet_filter; ?>">
                                 Next <i class="bi bi-chevron-right"></i>
                             </a>
                         </li>

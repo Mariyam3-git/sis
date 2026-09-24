@@ -16,6 +16,19 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Load KEY=VALUE pairs from a .env file next to this config (see .env.example) when the
+// server does not already provide them as environment variables. .env is never committed.
+if (is_file(__DIR__ . '/.env') && is_readable(__DIR__ . '/.env')) {
+    foreach (file(__DIR__ . '/.env', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $sisEnvLine) {
+        $sisEnvLine = trim($sisEnvLine);
+        if ($sisEnvLine === '' || $sisEnvLine[0] === '#' || strpos($sisEnvLine, '=') === false) continue;
+        [$sisEnvKey, $sisEnvValue] = array_map('trim', explode('=', $sisEnvLine, 2));
+        $sisEnvValue = trim($sisEnvValue, "\"'");
+        if ($sisEnvKey !== '' && getenv($sisEnvKey) === false) putenv($sisEnvKey . '=' . $sisEnvValue);
+    }
+    unset($sisEnvLine, $sisEnvKey, $sisEnvValue);
+}
+
 error_reporting(E_ALL);
 $sisDebug = filter_var(getenv('SIS_DEBUG') ?: '0', FILTER_VALIDATE_BOOLEAN);
 ini_set('display_errors', $sisDebug ? '1' : '0');
@@ -94,6 +107,139 @@ function redirectTo($path) {
 // Escape output safely
 function e($value) {
     return htmlspecialchars((string)($value ?? ''), ENT_QUOTES, 'UTF-8');
+}
+
+// State-changing actions (delete/restore/approve...) are only accepted as POST.
+// requireRole() already validates the CSRF token for every POST request.
+function sisPostAction($key) {
+    return ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST[$key]);
+}
+
+// True when this POST is one of the row actions above, so "save form" branches can skip it.
+function sisIsRowActionPost() {
+    foreach (['delete', 'hard_delete', 'restore', 'deactivate', 'activate', 'approve', 'reject', 'fulfill', 'receive', 'toggle_paid'] as $key) {
+        if (sisPostAction($key)) return true;
+    }
+    return false;
+}
+
+// Return $value when it is a real Y-m-d date, otherwise $default. Use for every date taken from a request.
+function sisCleanDate($value, $default = '') {
+    $value = is_string($value) ? trim($value) : '';
+    $dt = DateTime::createFromFormat('Y-m-d', $value);
+    return ($dt && $dt->format('Y-m-d') === $value) ? $value : $default;
+}
+
+// Failed logins are stored in the database, per username and per IP address, so the
+// lockout cannot be bypassed by simply dropping the session cookie.
+function sisEnsureLoginAttemptsTable($conn) {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    $ready = (bool)@mysqli_query($conn, "CREATE TABLE IF NOT EXISTS sis_login_attempts (
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(100) NOT NULL,
+        ip_address VARCHAR(45) NOT NULL,
+        attempted_at DATETIME NOT NULL,
+        KEY idx_login_attempt_user (username, attempted_at),
+        KEY idx_login_attempt_ip (ip_address, attempted_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    return $ready;
+}
+
+// Returns how many seconds the username/IP must still wait, or 0 when a login may be attempted.
+function sisLoginBlockedSeconds($conn, $username, $ip, $limit, $window) {
+    if (!sisEnsureLoginAttemptsTable($conn)) return 0;
+    $since = date('Y-m-d H:i:s', time() - (int)$window);
+    $username = strtolower(substr((string)$username, 0, 100));
+    // An IP address gets a larger allowance because several staff can share one outlet connection.
+    $ipLimit = (int)$limit * 4;
+    $stmt = mysqli_prepare($conn, "SELECT
+            SUM(username = ?) AS user_count, MAX(CASE WHEN username = ? THEN attempted_at END) AS user_last,
+            SUM(ip_address = ?) AS ip_count, MAX(CASE WHEN ip_address = ? THEN attempted_at END) AS ip_last
+        FROM sis_login_attempts WHERE attempted_at >= ? AND (username = ? OR ip_address = ?)");
+    if (!$stmt) return 0;
+    mysqli_stmt_bind_param($stmt, 'sssssss', $username, $username, $ip, $ip, $since, $username, $ip);
+    mysqli_stmt_execute($stmt);
+    $row = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt)) ?: [];
+    $wait = 0;
+    foreach ([['user_count', 'user_last', (int)$limit], ['ip_count', 'ip_last', $ipLimit]] as [$countKey, $lastKey, $max]) {
+        $count = (int)($row[$countKey] ?? 0);
+        if ($count < $max || empty($row[$lastKey])) continue;
+        $penalty = min(300, 30 * ($count - $max + 1));
+        $wait = max($wait, strtotime($row[$lastKey]) + $penalty - time());
+    }
+    return max(0, $wait);
+}
+
+function sisRecordLoginFailure($conn, $username, $ip) {
+    if (!sisEnsureLoginAttemptsTable($conn)) return;
+    $username = strtolower(substr((string)$username, 0, 100));
+    $now = date('Y-m-d H:i:s');
+    $stmt = mysqli_prepare($conn, 'INSERT INTO sis_login_attempts (username, ip_address, attempted_at) VALUES (?, ?, ?)');
+    if ($stmt) {
+        mysqli_stmt_bind_param($stmt, 'sss', $username, $ip, $now);
+        mysqli_stmt_execute($stmt);
+    }
+    // Keep the table small: rows older than a day are never needed.
+    @mysqli_query($conn, "DELETE FROM sis_login_attempts WHERE attempted_at < (NOW() - INTERVAL 1 DAY)");
+}
+
+function sisClearLoginFailures($conn, $username) {
+    if (!sisEnsureLoginAttemptsTable($conn)) return;
+    $username = strtolower(substr((string)$username, 0, 100));
+    $stmt = mysqli_prepare($conn, 'DELETE FROM sis_login_attempts WHERE username = ?');
+    if ($stmt) {
+        mysqli_stmt_bind_param($stmt, 's', $username);
+        mysqli_stmt_execute($stmt);
+    }
+}
+
+// Add or edit an agent/supervisor account from the Agents and Supervisors pages.
+// Usernames are unique across ALL roles, because login looks users up by username alone.
+// Returns [success, message, user_id].
+function sisSaveStaffUser($conn, $role, $id, $username, $fullName, $outletId, $shift, $password) {
+    $id = (int)$id;
+    $username = trim((string)$username);
+    $fullName = trim((string)$fullName);
+    $shift = trim((string)$shift) ?: 'Morning';
+    $password = (string)$password;
+    $outletId = (int)$outletId > 0 ? (int)$outletId : null;
+
+    if ($username === '' || $fullName === '') return [false, 'Username and full name are required.', $id];
+    if ($id <= 0 && $password === '') return [false, 'A password is required for a new account.', $id];
+    if ($password !== '' && strlen($password) < 8) return [false, 'Password must be at least 8 characters.', $id];
+
+    $stmt = mysqli_prepare($conn, 'SELECT id FROM users WHERE username = ? AND id <> ? LIMIT 1');
+    if (!$stmt) return [false, sisDbErrorMessage($conn, 'staff username check'), $id];
+    mysqli_stmt_bind_param($stmt, 'si', $username, $id);
+    mysqli_stmt_execute($stmt);
+    if (mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))) {
+        return [false, 'Username already exists! Please choose a different username.', $id];
+    }
+
+    if ($id > 0) {
+        if ($password !== '') {
+            $hash = password_hash($password, PASSWORD_DEFAULT);
+            $stmt = mysqli_prepare($conn, 'UPDATE users SET username = ?, full_name = ?, outlet_id = ?, shift = ?, password_hash = ? WHERE id = ? AND role = ?');
+            if ($stmt) mysqli_stmt_bind_param($stmt, 'ssissis', $username, $fullName, $outletId, $shift, $hash, $id, $role);
+        } else {
+            $stmt = mysqli_prepare($conn, 'UPDATE users SET username = ?, full_name = ?, outlet_id = ?, shift = ? WHERE id = ? AND role = ?');
+            if ($stmt) mysqli_stmt_bind_param($stmt, 'ssisis', $username, $fullName, $outletId, $shift, $id, $role);
+        }
+    } else {
+        $hash = password_hash($password, PASSWORD_DEFAULT);
+        $stmt = mysqli_prepare($conn, 'INSERT INTO users (username, password_hash, full_name, role, outlet_id, shift, is_active) VALUES (?, ?, ?, ?, ?, ?, 1)');
+        if ($stmt) mysqli_stmt_bind_param($stmt, 'ssssis', $username, $hash, $fullName, $role, $outletId, $shift);
+    }
+    if (!$stmt || !mysqli_stmt_execute($stmt)) return [false, sisDbErrorMessage($conn, 'save ' . $role), $id];
+    return [true, '', $id > 0 ? $id : (int)mysqli_insert_id($conn)];
+}
+
+// Log the real database error for the administrator and return a generic message for the page.
+function sisDbErrorMessage($conn, $context = '') {
+    $error = $conn ? mysqli_error($conn) : 'no connection';
+    error_log('SIS database error' . ($context !== '' ? ' [' . $context . ']' : '') . ' in ' . ($_SERVER['SCRIPT_NAME'] ?? '') . ': ' . $error);
+    return 'The database could not save this change. Please try again or contact the administrator.';
 }
 
 // Function to detect shift based on time. Existing calls still work.

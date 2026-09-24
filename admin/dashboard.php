@@ -320,9 +320,9 @@ $payment_summary = mysqli_query($conn, "
             <form class="sis-u-6f321c75" method="GET">
                 <div class="sis-u-611fa361">
                     <i class="bi bi-calendar-range text-muted"></i>
-                    <input type="date" name="date_from" class="form-control sis-w-150" value="<?php echo $date_from; ?>">
+                    <input type="date" name="date_from" class="form-control sis-w-150" value="<?php echo e($date_from); ?>">
                     <span>to</span>
-                    <input type="date" name="date_to" class="form-control sis-w-150" value="<?php echo $date_to; ?>">
+                    <input type="date" name="date_to" class="form-control sis-w-150" value="<?php echo e($date_to); ?>">
                 </div>
                 <button type="submit" class="btn btn-primary sis-u-e1831612">
                     <i class="bi bi-funnel"></i> Apply
@@ -341,10 +341,10 @@ $payment_summary = mysqli_query($conn, "
             <div class="sis-u-49cdf874">
                 <strong>Transfer Updates!</strong> 
                 <?php if($stats['pending_transfers'] > 0): ?>
-                <span class="badge bg-warning me-2"><?php echo $stats['pending_transfers']; ?> pending approval</span>
+                <span class="badge bg-warning me-2"><?php echo e($stats['pending_transfers']); ?> pending approval</span>
                 <?php endif; ?>
                 <?php if($stats['awaiting_receipt'] > 0): ?>
-                <span class="badge bg-info"><?php echo $stats['awaiting_receipt']; ?> awaiting receipt confirmation</span>
+                <span class="badge bg-info"><?php echo e($stats['awaiting_receipt']); ?> awaiting receipt confirmation</span>
                 <?php endif; ?>
                 <a class="sis-u-5c26d385" href="stock_transfer.php">Manage Transfers →</a>
             </div>
@@ -357,8 +357,8 @@ $payment_summary = mysqli_query($conn, "
             <i class="bi bi-exclamation-triangle-fill sis-u-fa415b95"></i>
             <div class="sis-u-49cdf874">
                 <strong>Stock Alert!</strong> 
-                <?php echo $stats['low_stock_count'] ?? 0; ?> items are low on stock 
-                (<?php echo $stats['critical_stock_count'] ?? 0; ?> critical, <?php echo $stats['out_of_stock_count'] ?? 0; ?> out of stock).
+                <?php echo e($stats['low_stock_count'] ?? 0); ?> items are low on stock 
+                (<?php echo e($stats['critical_stock_count'] ?? 0); ?> critical, <?php echo e($stats['out_of_stock_count'] ?? 0); ?> out of stock).
                 <a class="sis-u-5c26d385" href="stock_reports.php?type=low_stock">View Details →</a>
             </div>
         </div>
@@ -368,23 +368,23 @@ $payment_summary = mysqli_query($conn, "
         <div class="stat-grid">
             <div class="stat-card">
                 <h6>Total Outlets</h6>
-                <h2><?php echo $stats['outlets']; ?></h2>
+                <h2><?php echo e($stats['outlets']); ?></h2>
                 <small>Active branches</small>
             </div>
             <div class="stat-card">
                 <h6>Total Agents</h6>
-                <h2><?php echo $stats['agents']; ?></h2>
+                <h2><?php echo e($stats['agents']); ?></h2>
                 <small>Sales staff</small>
             </div>
             <div class="stat-card">
                 <h6>Period Visitors</h6>
                 <h2><?php echo number_format($stats['period_visitors']); ?></h2>
-                <small><?php echo $date_from; ?> to <?php echo $date_to; ?></small>
+                <small><?php echo e($date_from); ?> to <?php echo e($date_to); ?></small>
             </div>
             <div class="stat-card">
                 <h6>Period Revenue</h6>
                 <h2><?php echo $currency_symbol; ?> <?php echo number_format($stats['period_revenue'] ?? 0, 2); ?></h2>
-                <small><?php echo $stats['period_sales']; ?> transactions</small>
+                <small><?php echo e($stats['period_sales']); ?> transactions</small>
             </div>
         </div>
 
@@ -392,7 +392,7 @@ $payment_summary = mysqli_query($conn, "
         <div class="stat-grid">
             <div class="stat-card stock">
                 <h6><i class="bi bi-box"></i> Total Products</h6>
-                <h2><?php echo $stats['total_products']; ?></h2>
+                <h2><?php echo e($stats['total_products']); ?></h2>
                 <small>Active inventory items</small>
             </div>
             <div class="stat-card value">
@@ -402,13 +402,13 @@ $payment_summary = mysqli_query($conn, "
             </div>
             <div class="stat-card low">
                 <h6><i class="bi bi-exclamation-triangle"></i> Low Stock</h6>
-                <h2><?php echo $stats['low_stock_count'] ?? 0; ?></h2>
+                <h2><?php echo e($stats['low_stock_count'] ?? 0); ?></h2>
                 <small>Items below threshold</small>
             </div>
             <div class="stat-card critical">
                 <h6><i class="bi bi-x-circle"></i> Critical/Out</h6>
                 <h2><?php echo ($stats['critical_stock_count'] ?? 0) + ($stats['out_of_stock_count'] ?? 0); ?></h2>
-                <small><?php echo $stats['out_of_stock_count'] ?? 0; ?> out of stock</small>
+                <small><?php echo e($stats['out_of_stock_count'] ?? 0); ?> out of stock</small>
             </div>
         </div>
 
@@ -416,22 +416,22 @@ $payment_summary = mysqli_query($conn, "
         <div class="stat-grid">
             <div class="stat-card transfer">
                 <h6><i class="bi bi-arrow-left-right"></i> Pending Transfers</h6>
-                <h2><?php echo $stats['pending_transfers'] ?? 0; ?></h2>
+                <h2><?php echo e($stats['pending_transfers'] ?? 0); ?></h2>
                 <small>Awaiting approval</small>
             </div>
             <div class="stat-card transfer">
                 <h6><i class="bi bi-clock-history"></i> Awaiting Receipt</h6>
-                <h2><?php echo $stats['awaiting_receipt'] ?? 0; ?></h2>
+                <h2><?php echo e($stats['awaiting_receipt'] ?? 0); ?></h2>
                 <small>Need confirmation</small>
             </div>
             <div class="stat-card transfer">
                 <h6><i class="bi bi-check-circle"></i> Completed Today</h6>
-                <h2><?php echo $stats['completed_today'] ?? 0; ?></h2>
+                <h2><?php echo e($stats['completed_today'] ?? 0); ?></h2>
                 <small>Transfers received</small>
             </div>
             <div class="stat-card value">
                 <h6><i class="bi bi-truck"></i> Total Transfers</h6>
-                <h2><?php echo $stats['total_transfers'] ?? 0; ?></h2>
+                <h2><?php echo e($stats['total_transfers'] ?? 0); ?></h2>
                 <small>All time</small>
             </div>
         </div>
@@ -476,14 +476,14 @@ $payment_summary = mysqli_query($conn, "
                             ?>
                             <tr>
                                 <td>
-                                    <strong><?php echo $item['product_name']; ?></strong>
-                                    <small class="d-block text-muted"><?php echo $item['sku']; ?></small>
+                                    <strong><?php echo e($item['product_name']); ?></strong>
+                                    <small class="d-block text-muted"><?php echo e($item['sku']); ?></small>
                                 </td>
-                                <td><?php echo $item['outlet_name']; ?></td>
-                                <td class="fw-bold"><?php echo $item['quantity']; ?> / <?php echo $item['low_stock_threshold']; ?></td>
+                                <td><?php echo e($item['outlet_name']); ?></td>
+                                <td class="fw-bold"><?php echo e($item['quantity']); ?> / <?php echo e($item['low_stock_threshold']); ?></td>
                                 <td>
                                     <span class="badge bg-<?php echo $status_class; ?>">
-                                        <?php echo $status_text; ?>
+                                        <?php echo e($status_text); ?>
                                     </span>
                                 </td>
                             </tr>
@@ -522,11 +522,11 @@ $payment_summary = mysqli_query($conn, "
                             <?php while($transfer = mysqli_fetch_assoc($recent_transfers)): ?>
                             <tr>
                                 <td><?php echo date('d/m H:i', strtotime($transfer['requested_at'])); ?></td>
-                                <td><?php echo $transfer['product_name']; ?></td>
+                                <td><?php echo e($transfer['product_name']); ?></td>
                                 <td>
-                                    <small><?php echo $transfer['from_outlet_name']; ?> → <?php echo $transfer['to_outlet_name']; ?></small>
+                                    <small><?php echo e($transfer['from_outlet_name']); ?> → <?php echo e($transfer['to_outlet_name']); ?></small>
                                 </td>
-                                <td class="fw-bold"><?php echo $transfer['quantity']; ?></td>
+                                <td class="fw-bold"><?php echo e($transfer['quantity']); ?></td>
                                 <td>
                                     <?php if($transfer['status'] == 'pending'): ?>
                                         <span class="badge status-pending">Pending</span>
@@ -537,13 +537,13 @@ $payment_summary = mysqli_query($conn, "
                                     <?php elseif($transfer['status'] == 'rejected'): ?>
                                         <span class="badge status-rejected">Rejected</span>
                                     <?php else: ?>
-                                        <span class="badge bg-secondary"><?php echo $transfer['status']; ?></span>
+                                        <span class="badge bg-secondary"><?php echo e($transfer['status']); ?></span>
                                     <?php endif; ?>
                                 </td>
                                 <td>
                                     <?php if(isset($transfer['transferred_by_name']) || isset($transfer['approved_by_name']) || isset($transfer['received_by_name'])): ?>
                                     <i class="bi bi-info-circle" 
-                                       title="Requested: <?php echo $transfer['requested_by_name'] ?? $transfer['transferred_by_name'] ?? 'N/A'; ?><?php echo isset($transfer['approved_by_name']) ? ' | Approved: '.$transfer['approved_by_name'] : ''; ?><?php echo isset($transfer['received_by_name']) ? ' | Received: '.$transfer['received_by_name'] : ''; ?>"
+                                       title="Requested: <?php echo e($transfer['requested_by_name'] ?? $transfer['transferred_by_name'] ?? 'N/A'); ?><?php echo isset($transfer['approved_by_name']) ? e(' | Approved: ' . $transfer['approved_by_name']) : ''; ?><?php echo isset($transfer['received_by_name']) ? e(' | Received: ' . $transfer['received_by_name']) : ''; ?>"
                                       ></i>
                                     <?php else: ?>
                                     <i class="bi bi-info-circle text-muted"></i>
@@ -586,8 +586,8 @@ $payment_summary = mysqli_query($conn, "
                             <?php while($mov = mysqli_fetch_assoc($recent_movements)): ?>
                             <tr>
                                 <td><?php echo date('H:i d/m', strtotime($mov['created_at'])); ?></td>
-                                <td><?php echo $mov['outlet_name']; ?></td>
-                                <td><?php echo $mov['product_name']; ?></td>
+                                <td><?php echo e($mov['outlet_name']); ?></td>
+                                <td><?php echo e($mov['product_name']); ?></td>
                                 <td>
                                     <span class="badge bg-<?php 
                                         echo $mov['movement_type'] == 'received' ? 'success' : 
@@ -597,8 +597,8 @@ $payment_summary = mysqli_query($conn, "
                                         <?php echo ucfirst($mov['movement_type']); ?>
                                     </span>
                                 </td>
-                                <td class="fw-bold"><?php echo $mov['quantity']; ?></td>
-                                <td><?php echo $mov['user_name']; ?></td>
+                                <td class="fw-bold"><?php echo e($mov['quantity']); ?></td>
+                                <td><?php echo e($mov['user_name']); ?></td>
                             </tr>
                             <?php endwhile; ?>
                         <?php else: ?>
@@ -633,13 +633,13 @@ $payment_summary = mysqli_query($conn, "
                     <tbody>
                         <?php while($os = mysqli_fetch_assoc($outlet_stock)): ?>
                         <tr>
-                            <td><strong><?php echo $os['name']; ?></strong></td>
-                            <td><?php echo $os['products'] ?? 0; ?></td>
+                            <td><strong><?php echo e($os['name']); ?></strong></td>
+                            <td><?php echo e($os['products'] ?? 0); ?></td>
                             <td><?php echo number_format($os['total_items'] ?? 0); ?></td>
                             <td class="fw-bold text-success"><?php echo $currency_symbol; ?> <?php echo number_format($os['total_value'] ?? 0, 2); ?></td>
                             <td>
                                 <?php if(($os['low_stock'] ?? 0) > 0): ?>
-                                <span class="badge bg-warning text-dark"><?php echo $os['low_stock']; ?> items</span>
+                                <span class="badge bg-warning text-dark"><?php echo e($os['low_stock']); ?> items</span>
                                 <?php else: ?>
                                 <span class="badge bg-success">OK</span>
                                 <?php endif; ?>

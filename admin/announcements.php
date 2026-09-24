@@ -82,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 auditAction($conn, 'UPDATE_ANNOUNCEMENT', $id, $title);
                 redirectTo('announcements.php');
             }
-            sisSetFlash('Unable to update announcement: ' . mysqli_error($conn), 'danger');
+            sisSetFlash(sisDbErrorMessage($conn), 'danger');
             redirectTo($redirect);
         }
 
@@ -95,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             auditAction($conn, 'CREATE_ANNOUNCEMENT', $newId, $title);
             redirectTo('announcements.php');
         }
-        sisSetFlash('Unable to create announcement: ' . mysqli_error($conn), 'danger');
+        sisSetFlash(sisDbErrorMessage($conn), 'danger');
         redirectTo($redirect);
     }
 
@@ -202,7 +202,7 @@ if ($stmt) {
         $listError = mysqli_stmt_error($stmt);
     }
 } else {
-    $listError = mysqli_error($conn);
+    $listError = sisDbErrorMessage($conn, 'announcement list');
 }
 
 $totalDefaults = ['total' => 0, 'published' => 0, 'draft' => 0, 'archived' => 0, 'pinned' => 0];
@@ -211,7 +211,7 @@ $totalResult = mysqli_query($conn, "SELECT COUNT(*) AS total, COALESCE(SUM(CASE 
 $totalRow = $totalResult ? mysqli_fetch_assoc($totalResult) : null;
 $total = array_merge($totalDefaults, is_array($totalRow) ? $totalRow : []);
 if (!$totalResult && empty($message)) {
-    $message = 'Announcement database repair is required. Please run Management & System > Run Upgrade. Details: ' . mysqli_error($conn);
+    $message = sisDbErrorMessage($conn);
     $messageType = 'warning';
 }
 if ($listError !== '' && empty($message)) {

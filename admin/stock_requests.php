@@ -10,8 +10,8 @@ $message = '';
 $message_type = '';
 
 // Handle approval
-if (isset($_GET['approve'])) {
-    $request_id = (int)$_GET['id'];
+if (sisPostAction('approve')) {
+    $request_id = (int)$_POST['id'];
     
     mysqli_query($conn, "UPDATE stock_requests SET 
         status = 'approved',
@@ -25,9 +25,9 @@ if (isset($_GET['approve'])) {
 }
 
 // Handle rejection
-if (isset($_GET['reject'])) {
-    $request_id = (int)$_GET['id'];
-    $reason = mysqli_real_escape_string($conn, (string)($_GET['reason'] ?? 'No reason provided'));
+if (sisPostAction('reject')) {
+    $request_id = (int)$_POST['id'];
+    $reason = mysqli_real_escape_string($conn, (string)($_POST['reason'] ?? 'No reason provided'));
     
     mysqli_query($conn, "UPDATE stock_requests SET 
         status = 'rejected',
@@ -42,8 +42,8 @@ if (isset($_GET['reject'])) {
 }
 
 // Handle fulfillment
-if (isset($_GET['fulfill'])) {
-    $request_id = (int)$_GET['id'];
+if (sisPostAction('fulfill')) {
+    $request_id = (int)$_POST['id'];
     
     // Get request details
     $request = mysqli_fetch_assoc(mysqli_query($conn, "
@@ -64,7 +64,7 @@ if (isset($_GET['fulfill'])) {
             WHERE id = $request_id";
         
         if (!mysqli_query($conn, $update)) {
-            throw new Exception("Error updating request: " . mysqli_error($conn));
+            throw new Exception(sisDbErrorMessage($conn));
         }
         
         // Check if outlet already has this product
@@ -84,13 +84,13 @@ if (isset($_GET['fulfill'])) {
             
             $update_outlet = "UPDATE outlet_stock SET quantity = $after_qty WHERE id = {$outlet['id']}";
             if (!mysqli_query($conn, $update_outlet)) {
-                throw new Exception("Error updating outlet stock: " . mysqli_error($conn));
+                throw new Exception(sisDbErrorMessage($conn));
             }
         } else {
             $insert_outlet = "INSERT INTO outlet_stock (outlet_id, product_id, quantity) 
                               VALUES ({$request['outlet_id']}, {$request['product_id']}, {$request['quantity']})";
             if (!mysqli_query($conn, $insert_outlet)) {
-                throw new Exception("Error inserting outlet stock: " . mysqli_error($conn));
+                throw new Exception(sisDbErrorMessage($conn));
             }
         }
         
@@ -106,7 +106,7 @@ if (isset($_GET['fulfill'])) {
         )";
         
         if (!mysqli_query($conn, $movement)) {
-            throw new Exception("Error recording movement: " . mysqli_error($conn));
+            throw new Exception(sisDbErrorMessage($conn));
         }
         
         mysqli_commit($conn);
@@ -128,8 +128,8 @@ $outlets = mysqli_query($conn, "SELECT * FROM outlets WHERE is_active = 1 ORDER 
 // Get filter parameters
 $status_filter = isset($_GET['status']) ? mysqli_real_escape_string($conn, (string)($_GET['status'] ?? '')) : '';
 $outlet_filter = isset($_GET['outlet_id']) ? (int)$_GET['outlet_id'] : 0;
-$date_from = isset($_GET['date_from']) ? $_GET['date_from'] : date('Y-m-d', strtotime('-30 days'));
-$date_to = isset($_GET['date_to']) ? $_GET['date_to'] : date('Y-m-d');
+$date_from = sisCleanDate($_GET['date_from'] ?? '', date('Y-m-d', strtotime('-30 days')));
+$date_to = sisCleanDate($_GET['date_to'] ?? '', date('Y-m-d'));
 
 // Build where clause
 $where = ["1=1"];
@@ -212,22 +212,22 @@ $pending_requests_count = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*
         <div class="stats-grid">
             <div class="stat-card pending">
                 <h6>Pending</h6>
-                <h2><?php echo $stats['pending'] ?? 0; ?></h2>
+                <h2><?php echo e($stats['pending'] ?? 0); ?></h2>
                 <small>Awaiting approval</small>
             </div>
             <div class="stat-card approved">
                 <h6>Approved</h6>
-                <h2><?php echo $stats['approved'] ?? 0; ?></h2>
+                <h2><?php echo e($stats['approved'] ?? 0); ?></h2>
                 <small>Ready to fulfill</small>
             </div>
             <div class="stat-card fulfilled">
                 <h6>Fulfilled</h6>
-                <h2><?php echo $stats['fulfilled'] ?? 0; ?></h2>
+                <h2><?php echo e($stats['fulfilled'] ?? 0); ?></h2>
                 <small>Completed</small>
             </div>
             <div class="stat-card rejected">
                 <h6>Rejected</h6>
-                <h2><?php echo $stats['rejected'] ?? 0; ?></h2>
+                <h2><?php echo e($stats['rejected'] ?? 0); ?></h2>
                 <small>Cancelled</small>
             </div>
         </div>
@@ -236,17 +236,17 @@ $pending_requests_count = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*
         <div class="stats-grid">
             <div class="stat-card">
                 <h6>Critical</h6>
-                <h2><?php echo $stats['critical'] ?? 0; ?></h2>
+                <h2><?php echo e($stats['critical'] ?? 0); ?></h2>
                 <small>Urgent attention</small>
             </div>
             <div class="stat-card">
                 <h6>Urgent</h6>
-                <h2><?php echo $stats['urgent'] ?? 0; ?></h2>
+                <h2><?php echo e($stats['urgent'] ?? 0); ?></h2>
                 <small>High priority</small>
             </div>
             <div class="stat-card">
                 <h6>Total Requests</h6>
-                <h2><?php echo $stats['total'] ?? 0; ?></h2>
+                <h2><?php echo e($stats['total'] ?? 0); ?></h2>
                 <small>All time</small>
             </div>
             <div class="stat-card">
@@ -257,8 +257,8 @@ $pending_requests_count = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*
         </div>
 
         <?php if($message): ?>
-        <div class="alert alert-<?php echo $message_type; ?> alert-dismissible fade show">
-            <?php echo $message; ?>
+        <div class="alert alert-<?php echo e($message_type); ?> alert-dismissible fade show">
+            <?php echo e($message); ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         <?php endif; ?>
@@ -268,19 +268,19 @@ $pending_requests_count = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*
             <form method="GET" class="filter-grid">
                 <div class="filter-group">
                     <label>From Date</label>
-                    <input type="date" class="form-control" name="date_from" value="<?php echo $date_from; ?>">
+                    <input type="date" class="form-control" name="date_from" value="<?php echo e($date_from); ?>">
                 </div>
                 <div class="filter-group">
                     <label>To Date</label>
-                    <input type="date" class="form-control" name="date_to" value="<?php echo $date_to; ?>">
+                    <input type="date" class="form-control" name="date_to" value="<?php echo e($date_to); ?>">
                 </div>
                 <div class="filter-group">
                     <label>Outlet</label>
                     <select class="form-select" name="outlet_id">
                         <option value="0">All Outlets</option>
                         <?php while($o = mysqli_fetch_assoc($outlets)): ?>
-                        <option value="<?php echo $o['id']; ?>" <?php echo $outlet_filter == $o['id'] ? 'selected' : ''; ?>>
-                            <?php echo $o['name']; ?>
+                        <option value="<?php echo e($o['id']); ?>" <?php echo $outlet_filter == $o['id'] ? 'selected' : ''; ?>>
+                            <?php echo e($o['name']); ?>
                         </option>
                         <?php endwhile; ?>
                     </select>
@@ -332,31 +332,31 @@ $pending_requests_count = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*
                                 ?>
                                 <tr class="<?php echo $row_class; ?>">
                                     <td><?php echo date('d/m/Y H:i', strtotime($r['request_date'])); ?></td>
-                                    <td><?php echo $r['outlet_name']; ?></td>
-                                    <td><?php echo $r['supervisor_name']; ?></td>
+                                    <td><?php echo e($r['outlet_name']); ?></td>
+                                    <td><?php echo e($r['supervisor_name']); ?></td>
                                     <td>
-                                        <strong><?php echo $r['product_name']; ?></strong>
-                                        <br><small><?php echo $r['sku']; ?></small>
+                                        <strong><?php echo e($r['product_name']); ?></strong>
+                                        <br><small><?php echo e($r['sku']); ?></small>
                                     </td>
-                                    <td class="fw-bold"><?php echo $r['quantity']; ?></td>
+                                    <td class="fw-bold"><?php echo e($r['quantity']); ?></td>
                                     <td>
-                                        <span class="badge badge-<?php echo $r['priority']; ?>">
+                                        <span class="badge badge-<?php echo e($r['priority']); ?>">
                                             <?php echo ucfirst($r['priority']); ?>
                                         </span>
                                     </td>
                                     <td>
-                                        <span class="badge badge-<?php echo $r['status']; ?>">
+                                        <span class="badge badge-<?php echo e($r['status']); ?>">
                                             <?php echo ucfirst($r['status']); ?>
                                         </span>
                                     </td>
                                     <td>
                                         <?php if($r['status'] == 'pending'): ?>
-                                            <a href="?approve=1&id=<?php echo $r['id']; ?>" class="action-btn btn-approve" 
+                                            <a href="?approve=1&id=<?php echo e($r['id']); ?>" class="action-btn btn-approve" 
                                                onclick="return confirm('Approve this request?')">✓</a>
                                             <a href="#" class="action-btn btn-reject" 
-                                               onclick="promptReason(<?php echo $r['id']; ?>)">✗</a>
+                                               onclick="promptReason(<?php echo e($r['id']); ?>)">✗</a>
                                         <?php elseif($r['status'] == 'approved'): ?>
-                                            <a href="?fulfill=1&id=<?php echo $r['id']; ?>" class="action-btn btn-fulfill"
+                                            <a href="?fulfill=1&id=<?php echo e($r['id']); ?>" class="action-btn btn-fulfill"
                                                onclick="return confirm('Fulfill this request?')">📦</a>
                                         <?php endif; ?>
                                     </td>
@@ -364,7 +364,7 @@ $pending_requests_count = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*
                                 <?php if($r['rejection_reason']): ?>
                                 <tr>
                                     <td colspan="8" class="text-danger small">
-                                        <strong>Rejection reason:</strong> <?php echo $r['rejection_reason']; ?>
+                                        <strong>Rejection reason:</strong> <?php echo e($r['rejection_reason']); ?>
                                     </td>
                                 </tr>
                                 <?php endif; ?>
@@ -404,7 +404,7 @@ $pending_requests_count = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*
         function promptReason(requestId) {
             let reason = prompt('Enter rejection reason:');
             if (reason) {
-                window.location.href = '?reject=1&id=' + requestId + '&reason=' + encodeURIComponent(reason);
+                window.sisSubmitPost({ reject: 1, id: requestId, reason: reason });
             }
         }
     </script>

@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
                 $message = 'Support ticket status updated.';
                 logAction($conn, 'UPDATE_SUPPORT_TICKET_STATUS', $ticket_id);
             } else {
-                $message = 'Could not update status: ' . mysqli_error($conn);
+                $message = sisDbErrorMessage($conn);
                 $message_type = 'danger';
             }
         }
@@ -129,7 +129,7 @@ foreach ($tickets as $t) {
 <?php require_once dirname(__DIR__) . '/include/side_header.php'; sisRenderLayoutStart('admin'); ?>
 
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-2"><div><h1 class="page-title"><i class="bi bi-headset text-danger"></i> Complaint / Support Reports</h1><p class="text-muted">View Agent and Supervisor complaint/support records.</p></div><a class="btn btn-danger" href="support_forms.php"><i class="bi bi-ui-checks-grid"></i> Manage Form</a></div>
-    <?php if($message): ?><div class="alert alert-<?php echo $message_type; ?>"><?php echo e($message); ?></div><?php endif; ?>
+    <?php if($message): ?><div class="alert alert-<?php echo e($message_type); ?>"><?php echo e($message); ?></div><?php endif; ?>
 
     <div class="row g-3 mb-3"><div class="col-md"><div class="card kpi"><div class="card-body"><small>Total</small><h3><?php echo (int)$kpis['total']; ?></h3></div></div></div><div class="col-md"><div class="card kpi"><div class="card-body"><small>Open</small><h3><?php echo (int)$kpis['open']; ?></h3></div></div></div><div class="col-md"><div class="card kpi"><div class="card-body"><small>In Progress</small><h3><?php echo (int)$kpis['progress']; ?></h3></div></div></div><div class="col-md"><div class="card kpi"><div class="card-body"><small>Resolved</small><h3><?php echo (int)$kpis['resolved']; ?></h3></div></div></div><div class="col-md"><div class="card kpi"><div class="card-body"><small>Closed</small><h3><?php echo (int)$kpis['closed']; ?></h3></div></div></div></div>
 

@@ -1,0 +1,20 @@
+# Local secrets and machine-specific files
+.env
+*.lnk
+
+# Database dumps contain staff and customer data - never commit them
+*.sql
+!migrations/*.sql
+
+# User uploads (profile photos). Keep the protective .htaccess files.
+assets/uploads/**
+!assets/uploads/.htaccess
+!assets/uploads/users/
+!assets/uploads/users/.htaccess
+
+# Logs and editor/OS clutter
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

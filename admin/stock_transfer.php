@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_transfer'])) 
                 $update_source = "UPDATE outlet_stock SET quantity = $new_from_qty WHERE id = {$stock['id']}";
                 
                 if (!mysqli_query($conn, $update_source)) {
-                    throw new Exception("Error reducing source stock: " . mysqli_error($conn));
+                    throw new Exception(sisDbErrorMessage($conn));
                 }
                 
                 // Debug: Confirm reduction
@@ -101,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_transfer'])) 
                     $update_dest = "UPDATE outlet_stock SET quantity = $new_to_qty WHERE id = {$dest['id']}";
                     
                     if (!mysqli_query($conn, $update_dest)) {
-                        throw new Exception("Error updating destination stock: " . mysqli_error($conn));
+                        throw new Exception(sisDbErrorMessage($conn));
                     }
                     
                     $to_before = $dest['quantity'];
@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_transfer'])) 
                                    VALUES ($to_outlet, $product_id, {$stock['batch_id']}, $quantity)";
                     
                     if (!mysqli_query($conn, $insert_dest)) {
-                        throw new Exception("Error inserting destination stock: " . mysqli_error($conn));
+                        throw new Exception(sisDbErrorMessage($conn));
                     }
                     
                     $to_before = 0;
@@ -131,7 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_transfer'])) 
                 )";
                 
                 if (!mysqli_query($conn, $movement1)) {
-                    throw new Exception("Error recording source movement: " . mysqli_error($conn));
+                    throw new Exception(sisDbErrorMessage($conn));
                 }
                 
                 // 4. Record destination outlet movement
@@ -146,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_transfer'])) 
                 )";
                 
                 if (!mysqli_query($conn, $movement2)) {
-                    throw new Exception("Error recording destination movement: " . mysqli_error($conn));
+                    throw new Exception(sisDbErrorMessage($conn));
                 }
                 
                 // 5. Create transfer record
@@ -160,7 +160,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_transfer'])) 
                 )";
                 
                 if (!mysqli_query($conn, $insert_transfer)) {
-                    throw new Exception("Error creating transfer record: " . mysqli_error($conn));
+                    throw new Exception(sisDbErrorMessage($conn));
                 }
                 
                 mysqli_commit($conn);
@@ -183,8 +183,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_transfer'])) 
 }
 
 // Handle approval
-if (isset($_GET['approve'])) {
-    $transfer_id = (int)$_GET['id'];
+if (sisPostAction('approve')) {
+    $transfer_id = (int)$_POST['id'];
     
     $transfer = mysqli_fetch_assoc(mysqli_query($conn, "
         SELECT st.*, os.quantity as available_qty, os.id as stock_id,
@@ -265,8 +265,8 @@ if (isset($_GET['approve'])) {
 }
 
 // Handle rejection
-if (isset($_GET['reject'])) {
-    $transfer_id = (int)$_GET['id'];
+if (sisPostAction('reject')) {
+    $transfer_id = (int)$_POST['id'];
     
     mysqli_query($conn, "UPDATE stock_transfers SET 
         status = 'rejected',
@@ -279,8 +279,8 @@ if (isset($_GET['reject'])) {
 }
 
 // Handle receipt confirmation
-if (isset($_GET['receive'])) {
-    $transfer_id = (int)$_GET['id'];
+if (sisPostAction('receive')) {
+    $transfer_id = (int)$_POST['id'];
     
     mysqli_query($conn, "UPDATE stock_transfers SET 
         status = 'received',
@@ -366,7 +366,7 @@ $transfers = mysqli_query($conn, "
         </div>
 
         <?php if($message): ?>
-        <div class="alert alert-<?php echo $message_type; ?>"><?php echo $message; ?></div>
+        <div class="alert alert-<?php echo e($message_type); ?>"><?php echo e($message); ?></div>
         <?php endif; ?>
 
         <div class="two-col">
@@ -382,7 +382,7 @@ $transfers = mysqli_query($conn, "
                             <select class="form-select" name="from_outlet" id="from_outlet" required>
                                 <option value="">Select Source</option>
                                 <?php while($o = mysqli_fetch_assoc($outlets)): ?>
-                                <option value="<?php echo $o['id']; ?>"><?php echo $o['name']; ?></option>
+                                <option value="<?php echo e($o['id']); ?>"><?php echo e($o['name']); ?></option>
                                 <?php endwhile; ?>
                             </select>
                         </div>
@@ -395,7 +395,7 @@ $transfers = mysqli_query($conn, "
                                 mysqli_data_seek($outlets, 0);
                                 while($o = mysqli_fetch_assoc($outlets)): 
                                 ?>
-                                <option value="<?php echo $o['id']; ?>"><?php echo $o['name']; ?></option>
+                                <option value="<?php echo e($o['id']); ?>"><?php echo e($o['name']); ?></option>
                                 <?php endwhile; ?>
                             </select>
                         </div>
@@ -405,11 +405,11 @@ $transfers = mysqli_query($conn, "
                             <select class="form-select" name="product_id" id="productSelect" required>
                                 <option value="">Select Product</option>
                                 <?php while($p = mysqli_fetch_assoc($products)): ?>
-                                <option value="<?php echo $p['id']; ?>" 
-                                        data-max="<?php echo $p['total_available']; ?>"
-                                        data-threshold="<?php echo $p['low_stock_threshold']; ?>">
-                                    <?php echo $p['name']; ?> 
-                                    (Available: <?php echo $p['total_available']; ?>)
+                                <option value="<?php echo e($p['id']); ?>" 
+                                        data-max="<?php echo e($p['total_available']); ?>"
+                                        data-threshold="<?php echo e($p['low_stock_threshold']); ?>">
+                                    <?php echo e($p['name']); ?> 
+                                    (Available: <?php echo e($p['total_available']); ?>)
                                     <?php if($p['total_available'] <= $p['low_stock_threshold']): ?>
                                     ⚠️ LOW STOCK
                                     <?php endif; ?>
@@ -463,11 +463,11 @@ $transfers = mysqli_query($conn, "
                                 <?php while($t = mysqli_fetch_assoc($transfers)): ?>
                                 <tr>
                                     <td><?php echo date('d/m H:i', strtotime($t['requested_at'])); ?></td>
-                                    <td><?php echo $t['product_name']; ?></td>
+                                    <td><?php echo e($t['product_name']); ?></td>
                                     <td>
-                                        <small><?php echo $t['from_outlet_name']; ?> → <?php echo $t['to_outlet_name']; ?></small>
+                                        <small><?php echo e($t['from_outlet_name']); ?> → <?php echo e($t['to_outlet_name']); ?></small>
                                     </td>
-                                    <td class="fw-bold"><?php echo $t['quantity']; ?></td>
+                                    <td class="fw-bold"><?php echo e($t['quantity']); ?></td>
                                     <td>
                                         <?php if($t['status'] == 'pending'): ?>
                                             <span class="status-pending">Pending</span>
@@ -481,10 +481,10 @@ $transfers = mysqli_query($conn, "
                                     </td>
                                     <td>
                                         <?php if($t['status'] == 'pending'): ?>
-                                            <a href="?approve=1&id=<?php echo $t['id']; ?>" class="btn btn-sm btn-success" onclick="return confirm('Approve this transfer?')">✓</a>
-                                            <a href="?reject=1&id=<?php echo $t['id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Reject this transfer?')">✗</a>
+                                            <a href="?approve=1&id=<?php echo e($t['id']); ?>" class="btn btn-sm btn-success" onclick="return confirm('Approve this transfer?')">✓</a>
+                                            <a href="?reject=1&id=<?php echo e($t['id']); ?>" class="btn btn-sm btn-danger" onclick="return confirm('Reject this transfer?')">✗</a>
                                         <?php elseif($t['status'] == 'approved'): ?>
-                                            <a href="?receive=1&id=<?php echo $t['id']; ?>" class="btn btn-sm btn-info" onclick="return confirm('Confirm receipt?')">📦</a>
+                                            <a href="?receive=1&id=<?php echo e($t['id']); ?>" class="btn btn-sm btn-info" onclick="return confirm('Confirm receipt?')">📦</a>
                                         <?php endif; ?>
                                     </td>
                                 </tr>

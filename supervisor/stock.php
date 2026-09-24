@@ -54,7 +54,7 @@ $movements = mysqli_query($conn, "
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stock Management - <?php echo $outlet['name']; ?></title>
+    <title>Stock Management - <?php echo e($outlet['name']); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 <link rel="stylesheet" href="<?php echo appAsset('assets/css/sis-page-components.css'); ?>">
@@ -66,7 +66,7 @@ $movements = mysqli_query($conn, "
 
     <div class="page-header">
         <div class="container">
-            <h4><?php echo $outlet['name']; ?> - Stock Management</h4>
+            <h4><?php echo e($outlet['name']); ?> - Stock Management</h4>
         </div>
     </div>
 
@@ -75,7 +75,7 @@ $movements = mysqli_query($conn, "
         <div class="stat-grid">
             <div class="stat-card">
                 <h6>Total Products</h6>
-                <h2><?php echo $summary['total_products'] ?? 0; ?></h2>
+                <h2><?php echo e($summary['total_products'] ?? 0); ?></h2>
             </div>
             <div class="stat-card">
                 <h6>Total Items</h6>
@@ -87,7 +87,7 @@ $movements = mysqli_query($conn, "
             </div>
             <div class="stat-card">
                 <h6>Low Stock</h6>
-                <h2><?php echo $summary['low_stock_count'] ?? 0; ?></h2>
+                <h2><?php echo e($summary['low_stock_count'] ?? 0); ?></h2>
             </div>
         </div>
 
@@ -128,21 +128,21 @@ $movements = mysqli_query($conn, "
                         ?>
                         <tr class="<?php echo $row_class; ?>">
                             <td>
-                                <strong><?php echo $item['product_name']; ?></strong>
-                                <small class="d-block text-muted"><?php echo $item['sku']; ?></small>
+                                <strong><?php echo e($item['product_name']); ?></strong>
+                                <small class="d-block text-muted"><?php echo e($item['sku']); ?></small>
                             </td>
                             <td>
                                 <span class="sis-dynamic-color-text" data-color="<?php echo e($item['category_color']); ?>">
-                                    <?php echo $item['category_name']; ?>
+                                    <?php echo e($item['category_name']); ?>
                                 </span>
                             </td>
                             <td>
-                                <?php echo $item['batch_number'] ?? '—'; ?>
+                                <?php echo e($item['batch_number'] ?? '—'); ?>
                                 <?php if($item['expiry_date']): ?>
                                 <br><small>Exp: <?php echo date('d/m/Y', strtotime($item['expiry_date'])); ?></small>
                                 <?php endif; ?>
                             </td>
-                            <td class="fw-bold"><?php echo $item['quantity']; ?></td>
+                            <td class="fw-bold"><?php echo e($item['quantity']); ?></td>
                             <td>D <?php echo number_format($item['selling_price'], 2); ?></td>
                             <td><?php echo $status_badge; ?></td>
                         </tr>
@@ -172,7 +172,7 @@ $movements = mysqli_query($conn, "
                         <?php while($m = mysqli_fetch_assoc($movements)): ?>
                         <tr>
                             <td><?php echo date('d/m/Y H:i', strtotime($m['created_at'])); ?></td>
-                            <td><?php echo $m['product_name']; ?></td>
+                            <td><?php echo e($m['product_name']); ?></td>
                             <td>
                                 <span class="badge bg-<?php 
                                     echo $m['movement_type'] == 'received' ? 'success' : 
@@ -182,8 +182,8 @@ $movements = mysqli_query($conn, "
                                     <?php echo ucfirst($m['movement_type']); ?>
                                 </span>
                             </td>
-                            <td><?php echo $m['quantity']; ?></td>
-                            <td><?php echo $m['user_name']; ?></td>
+                            <td><?php echo e($m['quantity']); ?></td>
+                            <td><?php echo e($m['user_name']); ?></td>
                         </tr>
                         <?php endwhile; ?>
                     </tbody>

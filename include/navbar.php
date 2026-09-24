@@ -6,7 +6,6 @@ if (!function_exists('sisPageTitle')) {
         $page = basename($_SERVER['SCRIPT_NAME'] ?? 'dashboard.php');
         $titles = [
             'dashboard.php' => 'Dashboard',
-            'dashboard1.php' => 'Add Customer / Sale (Legacy Redirect)',
             'add_sale.php' => 'Add Sale / Transaction',
             'add_entry.php' => 'Start Customer / Add Sale',
             'stock.php' => 'Stock Management',

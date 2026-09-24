@@ -11,8 +11,8 @@ $outlet_result = mysqli_query($conn, $outlet_query);
 $outlet = mysqli_fetch_assoc($outlet_result);
 
 // Date filters
-$date_from = isset($_GET['date_from']) ? $_GET['date_from'] : date('Y-m-d', strtotime('-30 days'));
-$date_to = isset($_GET['date_to']) ? $_GET['date_to'] : date('Y-m-d');
+$date_from = sisCleanDate($_GET['date_from'] ?? '', date('Y-m-d', strtotime('-30 days')));
+$date_to = sisCleanDate($_GET['date_to'] ?? '', date('Y-m-d'));
 $status_filter = isset($_GET['status']) ? mysqli_real_escape_string($conn, (string)($_GET['status'] ?? '')) : '';
 
 // Build query with filters
@@ -63,7 +63,7 @@ $stats = mysqli_fetch_assoc(mysqli_query($conn, "
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stock Requests - <?php echo $outlet['name']; ?></title>
+    <title>Stock Requests - <?php echo e($outlet['name']); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 <link rel="stylesheet" href="<?php echo appAsset('assets/css/sis-page-components.css'); ?>">
@@ -78,11 +78,11 @@ $stats = mysqli_fetch_assoc(mysqli_query($conn, "
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-md-8">
-                    <h4 class="mb-0"><?php echo $outlet['name']; ?> - Stock Requests</h4>
+                    <h4 class="mb-0"><?php echo e($outlet['name']); ?> - Stock Requests</h4>
                     <p class="text-muted mb-0">Request history and tracking</p>
                 </div>
                 <div class="col-md-4 text-md-end">
-                    <span class="badge bg-info"><?php echo $stats['total']; ?> Total Requests</span>
+                    <span class="badge bg-info"><?php echo e($stats['total']); ?> Total Requests</span>
                 </div>
             </div>
         </div>
@@ -93,19 +93,19 @@ $stats = mysqli_fetch_assoc(mysqli_query($conn, "
         <div class="stats-grid">
             <div class="stat-card">
                 <small>Pending</small>
-                <h3><?php echo $stats['pending'] ?? 0; ?></h3>
+                <h3><?php echo e($stats['pending'] ?? 0); ?></h3>
             </div>
             <div class="stat-card">
                 <small>Approved</small>
-                <h3><?php echo $stats['approved'] ?? 0; ?></h3>
+                <h3><?php echo e($stats['approved'] ?? 0); ?></h3>
             </div>
             <div class="stat-card">
                 <small>Fulfilled</small>
-                <h3><?php echo $stats['fulfilled'] ?? 0; ?></h3>
+                <h3><?php echo e($stats['fulfilled'] ?? 0); ?></h3>
             </div>
             <div class="stat-card">
                 <small>Rejected</small>
-                <h3><?php echo $stats['rejected'] ?? 0; ?></h3>
+                <h3><?php echo e($stats['rejected'] ?? 0); ?></h3>
             </div>
             <div class="stat-card">
                 <small>Success Rate</small>
@@ -124,11 +124,11 @@ $stats = mysqli_fetch_assoc(mysqli_query($conn, "
             <form method="GET" class="row g-3">
                 <div class="col-md-3">
                     <label class="form-label">From Date</label>
-                    <input type="date" class="form-control" name="date_from" value="<?php echo $date_from; ?>">
+                    <input type="date" class="form-control" name="date_from" value="<?php echo e($date_from); ?>">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">To Date</label>
-                    <input type="date" class="form-control" name="date_to" value="<?php echo $date_to; ?>">
+                    <input type="date" class="form-control" name="date_to" value="<?php echo e($date_to); ?>">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Status</label>
@@ -178,25 +178,25 @@ $stats = mysqli_fetch_assoc(mysqli_query($conn, "
                                 ?>
                                 <tr class="<?php echo $priority_class; ?>">
                                     <td><?php echo date('d/m/Y H:i', strtotime($r['request_date'])); ?></td>
-                                    <td><small><?php echo $r['reference_number']; ?></small></td>
+                                    <td><small><?php echo e($r['reference_number']); ?></small></td>
                                     <td>
-                                        <strong><?php echo $r['product_name']; ?></strong>
-                                        <br><small><?php echo $r['sku']; ?></small>
+                                        <strong><?php echo e($r['product_name']); ?></strong>
+                                        <br><small><?php echo e($r['sku']); ?></small>
                                     </td>
-                                    <td class="fw-bold"><?php echo $r['quantity']; ?></td>
+                                    <td class="fw-bold"><?php echo e($r['quantity']); ?></td>
                                     <td>
-                                        <span class="badge badge-<?php echo $r['priority']; ?>">
+                                        <span class="badge badge-<?php echo e($r['priority']); ?>">
                                             <?php echo ucfirst($r['priority']); ?>
                                         </span>
                                     </td>
                                     <td>
-                                        <span class="badge badge-<?php echo $r['status']; ?>">
+                                        <span class="badge badge-<?php echo e($r['status']); ?>">
                                             <?php echo ucfirst($r['status']); ?>
                                         </span>
                                     </td>
                                     <td>
                                         <?php if($r['approved_by_name']): ?>
-                                            <?php echo $r['approved_by_name']; ?>
+                                            <?php echo e($r['approved_by_name']); ?>
                                             <br><small><?php echo $r['approved_at'] ? date('d/m/Y', strtotime($r['approved_at'])) : ''; ?></small>
                                         <?php else: ?>
                                             -
@@ -204,7 +204,7 @@ $stats = mysqli_fetch_assoc(mysqli_query($conn, "
                                     </td>
                                     <td>
                                         <?php if($r['fulfilled_by_name']): ?>
-                                            <?php echo $r['fulfilled_by_name']; ?>
+                                            <?php echo e($r['fulfilled_by_name']); ?>
                                             <br><small><?php echo $r['fulfilled_at'] ? date('d/m/Y', strtotime($r['fulfilled_at'])) : ''; ?></small>
                                         <?php else: ?>
                                             -
@@ -212,11 +212,11 @@ $stats = mysqli_fetch_assoc(mysqli_query($conn, "
                                     </td>
                                     <td>
                                         <?php if($r['rejection_reason']): ?>
-                                            <span class="text-danger" title="<?php echo $r['rejection_reason']; ?>">
+                                            <span class="text-danger" title="<?php echo e($r['rejection_reason']); ?>">
                                                 <i class="bi bi-exclamation-circle"></i>
                                             </span>
                                         <?php elseif($r['request_notes']): ?>
-                                            <span title="<?php echo $r['request_notes']; ?>">
+                                            <span title="<?php echo e($r['request_notes']); ?>">
                                                 <i class="bi bi-chat"></i>
                                             </span>
                                         <?php else: ?>
@@ -227,7 +227,7 @@ $stats = mysqli_fetch_assoc(mysqli_query($conn, "
                                 <?php if($r['rejection_reason']): ?>
                                 <tr class="table-danger">
                                     <td colspan="9" class="text-danger small">
-                                        <strong>Rejection Reason:</strong> <?php echo $r['rejection_reason']; ?>
+                                        <strong>Rejection Reason:</strong> <?php echo e($r['rejection_reason']); ?>
                                     </td>
                                 </tr>
                                 <?php endif; ?>
@@ -283,11 +283,11 @@ $stats = mysqli_fetch_assoc(mysqli_query($conn, "
                         ?>
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <span>
-                                <span class="badge badge-<?php echo $p['priority']; ?>">
+                                <span class="badge badge-<?php echo e($p['priority']); ?>">
                                     <?php echo ucfirst($p['priority']); ?>
                                 </span>
                             </span>
-                            <span class="fw-bold"><?php echo $p['count']; ?></span>
+                            <span class="fw-bold"><?php echo e($p['count']); ?></span>
                         </div>
                         <?php endwhile; ?>
                     </div>

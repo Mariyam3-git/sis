@@ -287,12 +287,12 @@ if (!function_exists('supportSaveTicket')) {
         if ($subject === '') $subject = $main_reason ?: 'Complaint / Support Request';
 
         $stmt = mysqli_prepare($conn, "INSERT INTO support_tickets (ticket_no, submitted_by, submitted_role, outlet_id, customer_name, customer_phone, category, priority, status, main_reason, sub_reason_id, subject, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        if (!$stmt) return [false, 'Could not prepare support ticket insert: ' . mysqli_error($conn), null];
+        if (!$stmt) return [false, sisDbErrorMessage($conn), null];
         mysqli_stmt_bind_param($stmt, 'sisissssssiss', $ticket_no, $submitted_by, $submitted_role, $outlet_id, $customer_name, $customer_phone, $category, $priority, $status, $main_reason, $sub_reason_id, $subject, $description);
         if (!mysqli_stmt_execute($stmt)) {
-            $err = mysqli_error($conn);
+            $err = sisDbErrorMessage($conn, 'support ticket');
             mysqli_stmt_close($stmt);
-            return [false, 'Could not save support ticket: ' . $err, null];
+            return [false, $err, null];
         }
         $ticket_id = mysqli_insert_id($conn);
         mysqli_stmt_close($stmt);

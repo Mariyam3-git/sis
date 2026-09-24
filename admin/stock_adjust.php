@@ -133,12 +133,12 @@ $total_adjustments = mysqli_fetch_assoc(mysqli_query($conn, "
         <div class="stats-grid">
             <div class="stat-card">
                 <h6>Adjustments This Month</h6>
-                <h2><?php echo $total_adjustments['count']; ?></h2>
+                <h2><?php echo e($total_adjustments['count']); ?></h2>
                 <small>Total transactions</small>
             </div>
             <div class="stat-card">
                 <h6>Quantity Adjusted</h6>
-                <h2><?php echo $total_adjustments['total_qty']; ?></h2>
+                <h2><?php echo e($total_adjustments['total_qty']); ?></h2>
                 <small>Units affected</small>
             </div>
             <div class="stat-card">
@@ -161,7 +161,7 @@ $total_adjustments = mysqli_fetch_assoc(mysqli_query($conn, "
         </div>
 
         <?php if($message): ?>
-        <div class="alert alert-<?php echo $message_type; ?>"><?php echo $message; ?></div>
+        <div class="alert alert-<?php echo e($message_type); ?>"><?php echo e($message); ?></div>
         <?php endif; ?>
 
         
@@ -178,7 +178,7 @@ $total_adjustments = mysqli_fetch_assoc(mysqli_query($conn, "
                             <select class="form-select" name="outlet_id" required>
                                 <option value="">Select Outlet</option>
                                 <?php while($o = mysqli_fetch_assoc($outlets)): ?>
-                                <option value="<?php echo $o['id']; ?>"><?php echo $o['name']; ?></option>
+                                <option value="<?php echo e($o['id']); ?>"><?php echo e($o['name']); ?></option>
                                 <?php endwhile; ?>
                             </select>
                         </div>
@@ -188,7 +188,7 @@ $total_adjustments = mysqli_fetch_assoc(mysqli_query($conn, "
                             <select class="form-select" name="product_id" required>
                                 <option value="">Select Product</option>
                                 <?php while($p = mysqli_fetch_assoc($products)): ?>
-                                <option value="<?php echo $p['id']; ?>"><?php echo $p['name']; ?></option>
+                                <option value="<?php echo e($p['id']); ?>"><?php echo e($p['name']); ?></option>
                                 <?php endwhile; ?>
                             </select>
                         </div>
@@ -256,16 +256,16 @@ $total_adjustments = mysqli_fetch_assoc(mysqli_query($conn, "
                                 <?php while($a = mysqli_fetch_assoc($adjustments)): ?>
                                 <tr>
                                     <td><?php echo date('d/m H:i', strtotime($a['created_at'])); ?></td>
-                                    <td><?php echo $a['outlet_name']; ?></td>
-                                    <td><?php echo $a['product_name']; ?></td>
+                                    <td><?php echo e($a['outlet_name']); ?></td>
+                                    <td><?php echo e($a['product_name']); ?></td>
                                     <td>
                                         <span class="badge-<?php echo $a['movement_type'] == 'adjusted_add' ? 'add' : 'remove'; ?>">
                                             <?php echo $a['movement_type'] == 'adjusted_add' ? '+ Add' : '- Remove'; ?>
                                         </span>
                                     </td>
-                                    <td class="fw-bold"><?php echo $a['quantity']; ?></td>
+                                    <td class="fw-bold"><?php echo e($a['quantity']); ?></td>
                                     <td><small><?php echo substr($a['notes'] ?? '', 0, 30); ?></small></td>
-                                    <td><?php echo $a['user_name']; ?></td>
+                                    <td><?php echo e($a['user_name']); ?></td>
                                 </tr>
                                 <?php endwhile; ?>
                             <?php else: ?>

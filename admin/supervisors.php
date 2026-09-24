@@ -11,8 +11,8 @@ $message = '';
 $message_type = '';
 
 // Deactivate supervisor (soft delete)
-if (isset($_GET['deactivate'])) {
-    $id = (int)$_GET['deactivate'];
+if (sisPostAction('deactivate')) {
+    $id = (int)$_POST['deactivate'];
     $query = "UPDATE users SET is_active = 0 WHERE id = $id AND role = 'supervisor'";
     if (mysqli_query($conn, $query)) {
         logAction($conn, 'DEACTIVATE_SUPERVISOR', $id);
@@ -22,8 +22,8 @@ if (isset($_GET['deactivate'])) {
 }
 
 // Activate supervisor (restore)
-if (isset($_GET['activate'])) {
-    $id = (int)$_GET['activate'];
+if (sisPostAction('activate')) {
+    $id = (int)$_POST['activate'];
     $query = "UPDATE users SET is_active = 1 WHERE id = $id AND role = 'supervisor'";
     if (mysqli_query($conn, $query)) {
         logAction($conn, 'ACTIVATE_SUPERVISOR', $id);
@@ -33,8 +33,8 @@ if (isset($_GET['activate'])) {
 }
 
 // Permanent delete (hard delete) – only if no dependencies
-if (isset($_GET['hard_delete'])) {
-    $id = (int)$_GET['hard_delete'];
+if (sisPostAction('hard_delete')) {
+    $id = (int)$_POST['hard_delete'];
     // Check if supervisor has any associated data (stock requests)
     $check_requests = mysqli_query($conn, "SELECT COUNT(*) as count FROM stock_requests WHERE supervisor_id = $id");
     $request_count = mysqli_fetch_assoc($check_requests)['count'] ?? 0;
@@ -49,7 +49,7 @@ if (isset($_GET['hard_delete'])) {
             $message = 'Supervisor permanently deleted!';
             $message_type = 'success';
         } else {
-            $message = 'Error: ' . mysqli_error($conn);
+            $message = sisDbErrorMessage($conn);
             $message_type = 'danger';
         }
     }
@@ -57,61 +57,18 @@ if (isset($_GET['hard_delete'])) {
 
 // Add/Edit supervisor (unchanged)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_supervisor'])) {
-    $username = mysqli_real_escape_string($conn, (string)($_POST['username'] ?? ''));
-    $full_name = mysqli_real_escape_string($conn, (string)($_POST['full_name'] ?? ''));
-    $outlet_id = (int)$_POST['outlet_id'];
-    $shift = mysqli_real_escape_string($conn, (string)($_POST['shift'] ?? 'Morning'));
-    
-    // Check if username already exists
-    $check_query = "SELECT id FROM users WHERE username = '$username' AND role = 'supervisor'";
-    if (isset($_POST['id']) && !empty($_POST['id'])) {
-        $check_query .= " AND id != " . (int)$_POST['id'];
-    }
-    $check_result = mysqli_query($conn, $check_query);
-    
-    if (mysqli_num_rows($check_result) > 0) {
-        $message = 'Username already exists! Please choose a different username.';
-        $message_type = 'danger';
+    $editing = (int)($_POST['id'] ?? 0) > 0;
+    [$saved, $saveError, $record_id] = sisSaveStaffUser(
+        $conn, 'supervisor', $_POST['id'] ?? 0, $_POST['username'] ?? '', $_POST['full_name'] ?? '',
+        $_POST['outlet_id'] ?? 0, $_POST['shift'] ?? 'Morning', $_POST['password'] ?? ''
+    );
+    if ($saved) {
+        logAction($conn, $editing ? 'UPDATE_SUPERVISOR' : 'ADD_SUPERVISOR', $record_id);
+        $message = $editing ? 'Supervisor updated successfully!' : 'Supervisor added successfully!';
+        $message_type = 'success';
     } else {
-        if (isset($_POST['id']) && !empty($_POST['id'])) {
-            // Edit
-            $id = (int)$_POST['id'];
-            if (!empty($_POST['password'])) {
-                $password_hash = password_hash($_POST['password'], PASSWORD_DEFAULT);
-                $query = "UPDATE users SET username = '$username', full_name = '$full_name', 
-                          outlet_id = $outlet_id, shift = '$shift', password_hash = '$password_hash' 
-                          WHERE id = $id AND role = 'supervisor'";
-            } else {
-                $query = "UPDATE users SET username = '$username', full_name = '$full_name', 
-                          outlet_id = $outlet_id, shift = '$shift'
-                          WHERE id = $id AND role = 'supervisor'";
-            }
-            $action = 'UPDATE_SUPERVISOR';
-            
-            if (mysqli_query($conn, $query)) {
-                logAction($conn, $action, $id);
-                $message = 'Supervisor updated successfully!';
-                $message_type = 'success';
-            } else {
-                $message = 'Error: ' . mysqli_error($conn);
-                $message_type = 'danger';
-            }
-        } else {
-            // Add new
-            $password_hash = password_hash($_POST['password'], PASSWORD_DEFAULT);
-            $query = "INSERT INTO users (username, password_hash, full_name, role, outlet_id, shift, is_active) 
-                      VALUES ('$username', '$password_hash', '$full_name', 'supervisor', $outlet_id, '$shift', 1)";
-            
-            if (mysqli_query($conn, $query)) {
-                $record_id = mysqli_insert_id($conn);
-                logAction($conn, 'ADD_SUPERVISOR', $record_id);
-                $message = 'Supervisor added successfully!';
-                $message_type = 'success';
-            } else {
-                $message = 'Error: ' . mysqli_error($conn);
-                $message_type = 'danger';
-            }
-        }
+        $message = $saveError;
+        $message_type = 'danger';
     }
 }
 
@@ -253,9 +210,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
         
         <?php if($message): ?>
-        <div class="alert alert-<?php echo $message_type; ?> alert-dismissible fade show" role="alert">
+        <div class="alert alert-<?php echo e($message_type); ?> alert-dismissible fade show" role="alert">
             <i class="bi bi-<?php echo $message_type == 'success' ? 'check-circle' : 'exclamation-triangle'; ?>"></i>
-            <?php echo $message; ?>
+            <?php echo e($message); ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         <?php endif; ?>
@@ -273,8 +230,8 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         mysqli_data_seek($outlets_result, 0);
                         while($outlet = mysqli_fetch_assoc($outlets_result)): 
                         ?>
-                        <option value="<?php echo $outlet['id']; ?>" <?php echo $filter_outlet == $outlet['id'] ? 'selected' : ''; ?>>
-                            <?php echo htmlspecialchars($outlet['name']); ?> (<?php echo $outlet['region']; ?>)
+                        <option value="<?php echo e($outlet['id']); ?>" <?php echo $filter_outlet == $outlet['id'] ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($outlet['name']); ?> (<?php echo e($outlet['region']); ?>)
                         </option>
                         <?php endwhile; ?>
                     </select>
@@ -283,8 +240,8 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     <select class="form-select" name="shift">
                         <option value="">All Shifts</option>
                         <?php foreach($shifts as $shift): ?>
-                        <option value="<?php echo $shift; ?>" <?php echo $filter_shift == $shift ? 'selected' : ''; ?>>
-                            <?php echo $shift; ?>
+                        <option value="<?php echo e($shift); ?>" <?php echo $filter_shift == $shift ? 'selected' : ''; ?>>
+                            <?php echo e($shift); ?>
                         </option>
                         <?php endforeach; ?>
                     </select>
@@ -292,7 +249,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <div class="filter-group">
                     <select class="form-select" name="status">
                         <?php foreach($statuses as $value => $label): ?>
-                        <option value="<?php echo $value; ?>" <?php echo $filter_status == $value ? 'selected' : ''; ?>>
+                        <option value="<?php echo e($value); ?>" <?php echo $filter_status == $value ? 'selected' : ''; ?>>
                             <?php echo $label; ?>
                         </option>
                         <?php endforeach; ?>
@@ -315,7 +272,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     <form method="POST">
                         <input type="hidden" name="save_supervisor" value="1">
                         <?php if($edit_supervisor): ?>
-                        <input type="hidden" name="id" value="<?php echo $edit_supervisor['id']; ?>">
+                        <input type="hidden" name="id" value="<?php echo e($edit_supervisor['id']); ?>">
                         <?php endif; ?>
                         
                         <div class="mb-3">
@@ -334,7 +291,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         
                         <div class="mb-3">
                             <label class="form-label">Password <?php echo $edit_supervisor ? '<small class="text-muted">(leave blank to keep current)</small>' : '<span class="text-danger">*</span>'; ?></label>
-                            <input type="password" class="form-control" name="password" 
+                            <input type="password" class="form-control" name="password" minlength="8" autocomplete="new-password"
                                    <?php echo $edit_supervisor ? '' : 'required'; ?>>
                         </div>
                         
@@ -346,9 +303,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                 mysqli_data_seek($outlets_result, 0);
                                 while($outlet = mysqli_fetch_assoc($outlets_result)): 
                                 ?>
-                                <option value="<?php echo $outlet['id']; ?>" 
+                                <option value="<?php echo e($outlet['id']); ?>" 
                                     <?php echo ($edit_supervisor['outlet_id'] ?? '') == $outlet['id'] ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($outlet['name']); ?> (<?php echo $outlet['region']; ?>)
+                                    <?php echo htmlspecialchars($outlet['name']); ?> (<?php echo e($outlet['region']); ?>)
                                 </option>
                                 <?php endwhile; ?>
                             </select>
@@ -438,7 +395,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                                         elseif($supervisor['shift'] == 'Rotational') $shift_class = 'badge-shift-rotational';
                                                         ?>
                                                         <span class="badge <?php echo $shift_class; ?>">
-                                                            <i class="bi bi-clock"></i> <?php echo $supervisor['shift'] ?? 'Morning'; ?>
+                                                            <i class="bi bi-clock"></i> <?php echo e($supervisor['shift'] ?? 'Morning'); ?>
                                                         </span>
                                                     </td>
                                                     <td class="text-muted small">
@@ -446,11 +403,11 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                                     </td>
                                                     <td>
                                                         <div class="d-flex gap-1">
-                                                            <a href="?edit=<?php echo $supervisor['id']; ?>&<?php echo http_build_query(array_filter(['search' => $search, 'outlet' => $filter_outlet, 'shift' => $filter_shift, 'status' => $filter_status])); ?>" 
+                                                            <a href="?edit=<?php echo e($supervisor['id']); ?>&<?php echo http_build_query(array_filter(['search' => $search, 'outlet' => $filter_outlet, 'shift' => $filter_shift, 'status' => $filter_status])); ?>" 
                                                                class="action-btn" title="Edit">
                                                                 <i class="bi bi-pencil"></i>
                                                             </a>
-                                                            <a href="?deactivate=<?php echo $supervisor['id']; ?>&<?php echo http_build_query(array_filter(['search' => $search, 'outlet' => $filter_outlet, 'shift' => $filter_shift, 'status' => $filter_status])); ?>" 
+                                                            <a href="?deactivate=<?php echo e($supervisor['id']); ?>&<?php echo http_build_query(array_filter(['search' => $search, 'outlet' => $filter_outlet, 'shift' => $filter_shift, 'status' => $filter_status])); ?>" 
                                                                class="action-btn text-warning" 
                                                                onclick="return confirm('Deactivate this supervisor? They will not be able to log in until reactivated.')" 
                                                                title="Deactivate">
@@ -523,7 +480,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                                 elseif($supervisor['shift'] == 'Rotational') $shift_class = 'badge-shift-rotational';
                                                 ?>
                                                 <span class="badge <?php echo $shift_class; ?>">
-                                                    <i class="bi bi-clock"></i> <?php echo $supervisor['shift'] ?? 'Morning'; ?>
+                                                    <i class="bi bi-clock"></i> <?php echo e($supervisor['shift'] ?? 'Morning'); ?>
                                                 </span>
                                             </td>
                                             <td class="text-muted small">
@@ -531,13 +488,13 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                             </td>
                                             <td>
                                                 <div class="d-flex gap-1">
-                                                    <a href="?activate=<?php echo $supervisor['id']; ?>&<?php echo http_build_query(array_filter(['search' => $search, 'outlet' => $filter_outlet, 'shift' => $filter_shift, 'status' => $filter_status])); ?>" 
+                                                    <a href="?activate=<?php echo e($supervisor['id']); ?>&<?php echo http_build_query(array_filter(['search' => $search, 'outlet' => $filter_outlet, 'shift' => $filter_shift, 'status' => $filter_status])); ?>" 
                                                        class="action-btn text-success" 
                                                        onclick="return confirm('Activate this supervisor? They will be able to log in again.')" 
                                                        title="Activate">
                                                         <i class="bi bi-person-check"></i> Activate
                                                     </a>
-                                                    <a href="?hard_delete=<?php echo $supervisor['id']; ?>&<?php echo http_build_query(array_filter(['search' => $search, 'outlet' => $filter_outlet, 'shift' => $filter_shift, 'status' => $filter_status])); ?>" 
+                                                    <a href="?hard_delete=<?php echo e($supervisor['id']); ?>&<?php echo http_build_query(array_filter(['search' => $search, 'outlet' => $filter_outlet, 'shift' => $filter_shift, 'status' => $filter_status])); ?>" 
                                                        class="action-btn text-danger" 
                                                        onclick="return confirm('⚠️ PERMANENTLY DELETE this supervisor? This cannot be undone! ⚠️')" 
                                                        title="Permanently Delete">

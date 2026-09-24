@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_product'])) {
             header("Location: stock_products.php?msg=success");
             exit();
         } else {
-            $message = 'Error: ' . mysqli_error($conn);
+            $message = sisDbErrorMessage($conn);
             $message_type = 'danger';
         }
     } else {
@@ -98,7 +98,7 @@ if (isset($_POST['update_threshold'])) {
         $message_type = 'success';
         logAction($conn, 'UPDATE_THRESHOLD', $product_id);
     } else {
-        $message = "Error: " . mysqli_error($conn);
+        $message = sisDbErrorMessage($conn);
         $message_type = 'danger';
     }
 }
@@ -121,14 +121,14 @@ if (isset($_POST['bulk_update'])) {
         $message_type = 'success';
         logAction($conn, 'BULK_UPDATE_THRESHOLD');
     } else {
-        $message = "Error: " . mysqli_error($conn);
+        $message = sisDbErrorMessage($conn);
         $message_type = 'danger';
     }
 }
 
 // Archive product (soft delete)
-if (isset($_GET['delete'])) {
-    $id = (int)$_GET['delete'];
+if (sisPostAction('delete')) {
+    $id = (int)$_POST['delete'];
     $query = "UPDATE stock_products SET is_active = 0 WHERE id = $id";
     if (mysqli_query($conn, $query)) {
         logAction($conn, 'DELETE_PRODUCT', $id);
@@ -138,8 +138,8 @@ if (isset($_GET['delete'])) {
 }
 
 // Restore product
-if (isset($_GET['restore'])) {
-    $id = (int)$_GET['restore'];
+if (sisPostAction('restore')) {
+    $id = (int)$_POST['restore'];
     $query = "UPDATE stock_products SET is_active = 1 WHERE id = $id";
     if (mysqli_query($conn, $query)) {
         logAction($conn, 'RESTORE_PRODUCT', $id);
@@ -149,8 +149,8 @@ if (isset($_GET['restore'])) {
 }
 
 // Permanent delete
-if (isset($_GET['hard_delete'])) {
-    $id = (int)$_GET['hard_delete'];
+if (sisPostAction('hard_delete')) {
+    $id = (int)$_POST['hard_delete'];
     $query = "DELETE FROM stock_products WHERE id = $id";
     if (mysqli_query($conn, $query)) {
         logAction($conn, 'PERMANENT_DELETE_PRODUCT', $id);
@@ -285,25 +285,25 @@ $current_page = basename($_SERVER['PHP_SELF']);
             </div>
             <div class="stat-card">
                 <h6>Very Low (&lt;10)</h6>
-                <h2><?php echo $threshold_stats['very_low'] ?? 0; ?></h2>
+                <h2><?php echo e($threshold_stats['very_low'] ?? 0); ?></h2>
                 <small>Need review</small>
             </div>
             <div class="stat-card">
                 <h6>Low (10-20)</h6>
-                <h2><?php echo $threshold_stats['low'] ?? 0; ?></h2>
+                <h2><?php echo e($threshold_stats['low'] ?? 0); ?></h2>
                 <small>Standard range</small>
             </div>
             <div class="stat-card">
                 <h6>Normal (&gt;20)</h6>
-                <h2><?php echo $threshold_stats['normal'] ?? 0; ?></h2>
+                <h2><?php echo e($threshold_stats['normal'] ?? 0); ?></h2>
                 <small>High threshold</small>
             </div>
         </div>
 
         <?php if($message): ?>
-        <div class="alert alert-<?php echo $message_type; ?> alert-dismissible fade show" role="alert">
+        <div class="alert alert-<?php echo e($message_type); ?> alert-dismissible fade show" role="alert">
             <i class="bi bi-<?php echo $message_type == 'success' ? 'check-circle' : 'exclamation-triangle'; ?>"></i>
-            <?php echo $message; ?>
+            <?php echo e($message); ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         <?php endif; ?>
@@ -331,7 +331,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     <form method="POST" action="">
                         <input type="hidden" name="save_product" value="1">
                         <?php if($edit_product): ?>
-                        <input type="hidden" name="id" value="<?php echo $edit_product['id']; ?>">
+                        <input type="hidden" name="id" value="<?php echo e($edit_product['id']); ?>">
                         <?php endif; ?>
                         
                         <div class="mb-2">
@@ -356,7 +356,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                     <?php 
                                     mysqli_data_seek($categories, 0);
                                     while($c = mysqli_fetch_assoc($categories)): ?>
-                                    <option value="<?php echo $c['id']; ?>" 
+                                    <option value="<?php echo e($c['id']); ?>" 
                                         <?php echo ($edit_product['category_id'] ?? '') == $c['id'] ? 'selected' : ''; ?>>
                                         <?php echo htmlspecialchars($c['name']); ?>
                                     </option>
@@ -375,13 +375,13 @@ $current_page = basename($_SERVER['PHP_SELF']);
                             <div class="col-6 mb-2">
                                 <label class="form-label">Unit Price (D)</label>
                                 <input type="number" step="0.01" class="form-control" name="unit_price" 
-                                       value="<?php echo $edit_product['unit_price'] ?? '0'; ?>" min="0">
+                                       value="<?php echo e($edit_product['unit_price'] ?? '0'); ?>" min="0">
                                 <small class="text-muted">Cost price per unit</small>
                             </div>
                             <div class="col-6 mb-2">
                                 <label class="form-label">Selling Price (D)</label>
                                 <input type="number" step="0.01" class="form-control" name="selling_price" 
-                                       value="<?php echo $edit_product['selling_price'] ?? '0'; ?>" min="0">
+                                       value="<?php echo e($edit_product['selling_price'] ?? '0'); ?>" min="0">
                                 <small class="text-muted">Retail price per unit</small>
                             </div>
                         </div>
@@ -390,13 +390,13 @@ $current_page = basename($_SERVER['PHP_SELF']);
                             <div class="col-6 mb-2">
                                 <label class="form-label">Low Stock Threshold</label>
                                 <input type="number" class="form-control" name="low_stock_threshold" 
-                                       value="<?php echo $edit_product['low_stock_threshold'] ?? '10'; ?>" min="1">
+                                       value="<?php echo e($edit_product['low_stock_threshold'] ?? '10'); ?>" min="1">
                                 <small class="text-muted">Alert when stock falls below this</small>
                             </div>
                             <div class="col-6 mb-2">
                                 <label class="form-label">Reorder Quantity</label>
                                 <input type="number" class="form-control" name="reorder_quantity" 
-                                       value="<?php echo $edit_product['reorder_quantity'] ?? '20'; ?>" min="1">
+                                       value="<?php echo e($edit_product['reorder_quantity'] ?? '20'); ?>" min="1">
                                 <small class="text-muted">Suggested order quantity</small>
                             </div>
                         </div>
@@ -451,7 +451,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                             <?php 
                             mysqli_data_seek($categories, 0);
                             while($c = mysqli_fetch_assoc($categories)): ?>
-                            <option value="<?php echo $c['id']; ?>" <?php echo $category_filter == $c['id'] ? 'selected' : ''; ?>>
+                            <option value="<?php echo e($c['id']); ?>" <?php echo $category_filter == $c['id'] ? 'selected' : ''; ?>>
                                 <?php echo htmlspecialchars($c['name']); ?>
                             </option>
                             <?php endwhile; ?>
@@ -478,7 +478,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                     <?php 
                                     mysqli_data_seek($categories, 0);
                                     while($c = mysqli_fetch_assoc($categories)): ?>
-                                    <option value="<?php echo $c['id']; ?>"><?php echo htmlspecialchars($c['name']); ?></option>
+                                    <option value="<?php echo e($c['id']); ?>"><?php echo htmlspecialchars($c['name']); ?></option>
                                     <?php endwhile; ?>
                                 </select>
                             </div>
@@ -552,7 +552,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                                     data-product-sku="<?php echo strtolower(htmlspecialchars($p['sku'] ?? '')); ?>">
                                                     <td>
                                                         <strong><?php echo htmlspecialchars(substr($p['name'], 0, 30)); ?></strong>
-                                                        <br><small class="text-muted"><?php echo $p['sku']; ?></small>
+                                                        <br><small class="text-muted"><?php echo e($p['sku']); ?></small>
                                                     </td>
                                                     <td class="fw-bold"><?php echo $total_stock; ?> units</td>
                                                     <td>
@@ -562,30 +562,30 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                                         <br><small><?php echo $remaining_status; ?></small>
                                                     </td>
                                                     <td>
-                                                        <form method="POST" class="d-inline" id="threshold-form-<?php echo $p['id']; ?>">
+                                                        <form method="POST" class="d-inline" id="threshold-form-<?php echo e($p['id']); ?>">
                                                             <input type="hidden" name="update_threshold" value="1">
-                                                            <input type="hidden" name="product_id" value="<?php echo $p['id']; ?>">
+                                                            <input type="hidden" name="product_id" value="<?php echo e($p['id']); ?>">
                                                             <input type="number" name="low_stock_threshold" 
-                                                                   value="<?php echo $p['low_stock_threshold']; ?>" 
+                                                                   value="<?php echo e($p['low_stock_threshold']); ?>" 
                                                                    class="threshold-input" min="1"
-                                                                   onchange="updateThreshold(<?php echo $p['id']; ?>)">
-                                                            <input type="hidden" name="reorder_quantity" value="<?php echo $p['reorder_quantity']; ?>">
+                                                                   onchange="updateThreshold(<?php echo e($p['id']); ?>)">
+                                                            <input type="hidden" name="reorder_quantity" value="<?php echo e($p['reorder_quantity']); ?>">
                                                         </form>
                                                      </td>
                                                     <td>
                                                         <span class="badge bg-<?php echo $status_class; ?>">
-                                                            <?php echo $status_text; ?>
+                                                            <?php echo e($status_text); ?>
                                                         </span>
                                                         <?php if($p['low_stock_outlets'] > 0): ?>
-                                                        <br><small class="text-danger"><?php echo $p['low_stock_outlets']; ?> outlets low</small>
+                                                        <br><small class="text-danger"><?php echo e($p['low_stock_outlets']); ?> outlets low</small>
                                                         <?php endif; ?>
                                                      </td>
                                                     <td>
                                                         <div class="d-flex gap-1">
-                                                            <a href="?edit=<?php echo $p['id']; ?>" class="action-btn" title="Edit">
+                                                            <a href="?edit=<?php echo e($p['id']); ?>" class="action-btn" title="Edit">
                                                                 <i class="bi bi-pencil"></i>
                                                             </a>
-                                                            <a href="?delete=<?php echo $p['id']; ?>" class="action-btn text-warning" 
+                                                            <a href="?delete=<?php echo e($p['id']); ?>" class="action-btn text-warning" 
                                                                onclick="return confirm('Archive this product? It can be restored later.')" title="Archive">
                                                                 <i class="bi bi-archive"></i>
                                                             </a>
@@ -639,14 +639,14 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                 <br><small class="text-muted"><?php echo htmlspecialchars($p['sku']); ?></small>
                              </td>
                             <td><?php echo htmlspecialchars($p['category_name'] ?? 'Uncategorized'); ?></td>
-                            <td><?php echo $p['low_stock_threshold']; ?></td>
+                            <td><?php echo e($p['low_stock_threshold']); ?></td>
                             <td>
                                 <div class="d-flex gap-1">
-                                    <a href="?restore=<?php echo $p['id']; ?>" class="action-btn text-success" 
+                                    <a href="?restore=<?php echo e($p['id']); ?>" class="action-btn text-success" 
                                        onclick="return confirm('Restore this product?')" title="Restore">
                                         <i class="bi bi-arrow-counterclockwise"></i>
                                     </a>
-                                    <a href="?hard_delete=<?php echo $p['id']; ?>" class="action-btn text-danger" 
+                                    <a href="?hard_delete=<?php echo e($p['id']); ?>" class="action-btn text-danger" 
                                        onclick="return confirm('⚠️ PERMANENTLY DELETE this product? This cannot be undone! ⚠️')" title="Permanently Delete">
                                         <i class="bi bi-trash"></i>
                                     </a>

@@ -55,14 +55,14 @@ $recon_result = mysqli_query($conn, $recon_query);
                             <?php while($recon = mysqli_fetch_assoc($recon_result)): ?>
                             <tr>
                                 <td><?php echo date('d/m/Y', strtotime($recon['reconciliation_date'])); ?></td>
-                                <td><?php echo $recon['outlet_name'] ?? '-'; ?></td>
-                                <td><?php echo $recon['agent_name'] ?? '-'; ?></td>
+                                <td><?php echo e($recon['outlet_name'] ?? '-'); ?></td>
+                                <td><?php echo e($recon['agent_name'] ?? '-'); ?></td>
                                 <td>D <?php echo number_format($recon['expected_amount'], 2); ?></td>
                                 <td>D <?php echo number_format($recon['actual_amount'], 2); ?></td>
                                 <td class="<?php echo $recon['discrepancy'] >= 0 ? 'discrepancy-positive' : 'discrepancy-negative'; ?>">
                                     <strong>D <?php echo number_format($recon['discrepancy'], 2); ?></strong>
                                 </td>
-                                <td><?php echo $recon['notes'] ?? '-'; ?></td>
+                                <td><?php echo e($recon['notes'] ?? '-'); ?></td>
                             </tr>
                             <?php endwhile; ?>
                         </tbody>
