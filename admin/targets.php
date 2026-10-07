@@ -81,15 +81,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
             $message_type = 'success';
         } else {
-            $message = 'Error setting targets: ' . mysqli_error($conn);
+            $message = sisDbErrorMessage($conn);
             $message_type = 'danger';
         }
     }
 }
 
 // Delete target
-if (isset($_GET['delete'])) {
-    $id = (int)$_GET['delete'];
+if (sisPostAction('delete')) {
+    $id = (int)$_POST['delete'];
     $query = "DELETE FROM targets WHERE id = $id";
     if (mysqli_query($conn, $query)) {
         logAction($conn, 'DELETE_TARGET', $id);
@@ -206,7 +206,7 @@ mysqli_data_seek($targets_result, 0);
         </div>
 
         <?php if($message): ?>
-        <div class="alert alert-<?php echo $message_type; ?>"><?php echo $message; ?></div>
+        <div class="alert alert-<?php echo e($message_type); ?>"><?php echo e($message); ?></div>
         <?php endif; ?>
 
         
@@ -240,10 +240,10 @@ mysqli_data_seek($targets_result, 0);
                                 mysqli_data_seek($agents_result, 0);
                                 while($agent = mysqli_fetch_assoc($agents_result)): 
                                 ?>
-                                <option value="<?php echo $agent['id']; ?>">
-                                    <?php echo $agent['full_name']; ?> 
+                                <option value="<?php echo e($agent['id']); ?>">
+                                    <?php echo e($agent['full_name']); ?> 
                                     <?php if($agent['outlet_id']): ?>
-                                    (Outlet #<?php echo $agent['outlet_id']; ?>)
+                                    (Outlet #<?php echo e($agent['outlet_id']); ?>)
                                     <?php endif; ?>
                                 </option>
                                 <?php endwhile; ?>
@@ -261,7 +261,7 @@ mysqli_data_seek($targets_result, 0);
                                 mysqli_data_seek($outlets_result, 0);
                                 while($outlet = mysqli_fetch_assoc($outlets_result)): 
                                 ?>
-                                <option value="<?php echo $outlet['id']; ?>"><?php echo $outlet['name']; ?></option>
+                                <option value="<?php echo e($outlet['id']); ?>"><?php echo e($outlet['name']); ?></option>
                                 <?php endwhile; ?>
                             </select>
                         </div>
@@ -366,14 +366,14 @@ mysqli_data_seek($targets_result, 0);
                                             $is_active = strtotime($target['end_date']) >= strtotime(date('Y-m-d'));
                                         ?>
                                         <tr>
-                                            <td><input type="checkbox" name="target_ids[]" value="<?php echo $target['id']; ?>" class="target-checkbox"></td>
+                                            <td><input type="checkbox" name="target_ids[]" value="<?php echo e($target['id']); ?>" class="target-checkbox"></td>
                                             <td>
                                                 <span class="badge bg-<?php echo $target['target_type'] == 'agent' ? 'info' : 'primary'; ?>">
                                                     <?php echo ucfirst($target['target_type']); ?>
                                                 </span>
                                             </td>
                                             <td>
-                                                <strong><?php echo $target['assigned_name']; ?></strong>
+                                                <strong><?php echo e($target['assigned_name']); ?></strong>
                                                 <small class="d-block text-muted">
                                                     Target: D <?php echo number_format($target['target_value'], 2); ?>
                                                 </small>
@@ -396,14 +396,14 @@ mysqli_data_seek($targets_result, 0);
                                             </td>
                                             <td>
                                                 <span class="badge badge-<?php echo $status_class; ?>">
-                                                    <?php echo $status_text; ?>
+                                                    <?php echo e($status_text); ?>
                                                 </span>
                                                 <?php if(!$is_active): ?>
                                                 <br><small class="text-muted">Expired</small>
                                                 <?php endif; ?>
                                             </td>
                                             <td>
-                                                <a href="?delete=<?php echo $target['id']; ?>" class="btn-danger btn-sm" 
+                                                <a href="?delete=<?php echo e($target['id']); ?>" class="btn-danger btn-sm" 
                                                    onclick="return confirm('Delete this target?')">
                                                     <i class="bi bi-trash"></i>
                                                 </a>

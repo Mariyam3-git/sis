@@ -10,8 +10,8 @@ $message = '';
 $message_type = '';
 
 // Delete category
-if (isset($_GET['delete'])) {
-    $id = (int)$_GET['delete'];
+if (sisPostAction('delete')) {
+    $id = (int)$_POST['delete'];
     
     // Check if category has purposes
     $check = mysqli_query($conn, "SELECT COUNT(*) as count FROM purpose_of_visit WHERE category_id = $id");
@@ -31,7 +31,7 @@ if (isset($_GET['delete'])) {
 }
 
 // Add/Edit category
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !sisIsRowActionPost()) {
     $name = mysqli_real_escape_string($conn, (string)($_POST['name'] ?? ''));
     $description = mysqli_real_escape_string($conn, (string)($_POST['description'] ?? ''));
     
@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = 'Category saved!';
         $message_type = 'success';
     } else {
-        $message = 'Error: ' . mysqli_error($conn);
+        $message = sisDbErrorMessage($conn);
         $message_type = 'danger';
     }
 }
@@ -121,7 +121,7 @@ $used_categories = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(DISTINCT
         </div>
 
         <?php if($message): ?>
-        <div class="alert alert-<?php echo $message_type; ?>"><?php echo $message; ?></div>
+        <div class="alert alert-<?php echo e($message_type); ?>"><?php echo e($message); ?></div>
         <?php endif; ?>
 
         
@@ -135,18 +135,18 @@ $used_categories = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(DISTINCT
                 <div class="card-body">
                     <form method="POST">
                         <?php if($edit_category): ?>
-                        <input type="hidden" name="id" value="<?php echo $edit_category['id']; ?>">
+                        <input type="hidden" name="id" value="<?php echo e($edit_category['id']); ?>">
                         <?php endif; ?>
                         
                         <div class="mb-3">
                             <label class="form-label">Category Name</label>
                             <input type="text" class="form-control" name="name" 
-                                   value="<?php echo $edit_category['name'] ?? ''; ?>" required>
+                                   value="<?php echo e($edit_category['name'] ?? ''); ?>" required>
                         </div>
                         
                         <div class="mb-3">
                             <label class="form-label">Description</label>
-                            <textarea class="form-control" name="description" rows="2"><?php echo $edit_category['description'] ?? ''; ?></textarea>
+                            <textarea class="form-control" name="description" rows="2"><?php echo e($edit_category['description'] ?? ''); ?></textarea>
                         </div>
                         
                         <div class="d-flex gap-2">
@@ -194,11 +194,11 @@ $used_categories = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(DISTINCT
                                         <span class="badge bg-info"><?php echo $count; ?> purposes</span>
                                     </td>
                                     <td>
-                                        <a href="?edit=<?php echo $category['id']; ?>" class="action-btn" title="Edit">
+                                        <a href="?edit=<?php echo e($category['id']); ?>" class="action-btn" title="Edit">
                                             <i class="bi bi-pencil"></i>
                                         </a>
                                         <?php if($count == 0): ?>
-                                        <a href="?delete=<?php echo $category['id']; ?>" class="action-btn text-danger" 
+                                        <a href="?delete=<?php echo e($category['id']); ?>" class="action-btn text-danger" 
                                            onclick="return confirm('Delete this category?')" title="Delete">
                                             <i class="bi bi-trash"></i>
                                         </a>

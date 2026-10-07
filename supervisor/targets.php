@@ -33,7 +33,7 @@ $targets_result = mysqli_query($conn, $targets_query);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Targets - <?php echo $outlet['name']; ?></title>
+    <title>Targets - <?php echo e($outlet['name']); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 <link rel="stylesheet" href="<?php echo appAsset('assets/css/sis-page-components.css'); ?>">
@@ -45,7 +45,7 @@ $targets_result = mysqli_query($conn, $targets_query);
 
     <div class="page-header">
         <div class="container">
-            <h4><?php echo $outlet['name']; ?> - Sales Targets</h4>
+            <h4><?php echo e($outlet['name']); ?> - Sales Targets</h4>
             <small class="text-muted">View-only mode</small>
         </div>
     </div>
@@ -82,7 +82,7 @@ $targets_result = mysqli_query($conn, $targets_query);
                                         <?php echo ucfirst($target['target_type']); ?>
                                     </span>
                                 </td>
-                                <td><strong><?php echo $target['target_name']; ?></strong></td>
+                                <td><strong><?php echo e($target['target_name']); ?></strong></td>
                                 <td>
                                     <?php echo ucfirst($target['period_type']); ?><br>
                                     <small><?php echo date('d/m', strtotime($target['start_date'])); ?> - 
@@ -99,7 +99,7 @@ $targets_result = mysqli_query($conn, $targets_query);
                                 </td>
                                 <td>
                                     <span class="badge bg-<?php echo $percentage >= 100 ? 'success' : 'warning'; ?>">
-                                        <?php echo $status_text; ?>
+                                        <?php echo e($status_text); ?>
                                     </span>
                                 </td>
                             </tr>

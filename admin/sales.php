@@ -76,7 +76,7 @@ $summaryQuery = mysqli_query($conn, "
     WHERE $where_clause
 ");
 $summary = $summaryQuery ? (mysqli_fetch_assoc($summaryQuery) ?: []) : [];
-if (!$summaryQuery) $reportErrors[] = 'Summary: ' . mysqli_error($conn);
+if (!$summaryQuery) $reportErrors[] = sisDbErrorMessage($conn);
 
 $sales_result = mysqli_query($conn, "
     SELECT s.*, v.name AS visitor_name, v.contact AS customer_gsm, u.full_name AS agent_name,
@@ -95,7 +95,7 @@ $sales_result = mysqli_query($conn, "
     ORDER BY s.payment_date DESC, s.id DESC
     LIMIT 1500
 ");
-if (!$sales_result) $reportErrors[] = 'Transactions: ' . mysqli_error($conn);
+if (!$sales_result) $reportErrors[] = sisDbErrorMessage($conn);
 
 $report_by_agent = mysqli_query($conn, "
     SELECT COALESCE(u.full_name, 'Unknown Agent') AS label,
@@ -115,7 +115,7 @@ $report_by_agent = mysqli_query($conn, "
     GROUP BY u.id, u.full_name
     ORDER BY collected DESC, transactions DESC
 ");
-if (!$report_by_agent) $reportErrors[] = 'Agent summary: ' . mysqli_error($conn);
+if (!$report_by_agent) $reportErrors[] = sisDbErrorMessage($conn);
 
 $report_by_outlet = mysqli_query($conn, "
     SELECT COALESCE(o.name, 'Unknown Showroom') AS label, COALESCE(o.region, '-') AS region,
@@ -134,7 +134,7 @@ $report_by_outlet = mysqli_query($conn, "
     GROUP BY o.id, o.name, o.region
     ORDER BY collected DESC, transactions DESC
 ");
-if (!$report_by_outlet) $reportErrors[] = 'Showroom summary: ' . mysqli_error($conn);
+if (!$report_by_outlet) $reportErrors[] = sisDbErrorMessage($conn);
 
 $report_by_shift = mysqli_query($conn, "
     SELECT COALESCE(a.shift_type, u.shift, 'No Shift') AS label,
@@ -153,7 +153,7 @@ $report_by_shift = mysqli_query($conn, "
     GROUP BY COALESCE(a.shift_type, u.shift, 'No Shift')
     ORDER BY collected DESC, transactions DESC
 ");
-if (!$report_by_shift) $reportErrors[] = 'Shift summary: ' . mysqli_error($conn);
+if (!$report_by_shift) $reportErrors[] = sisDbErrorMessage($conn);
 ?>
 <!DOCTYPE html>
 <html lang="en">

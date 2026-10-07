@@ -11,8 +11,8 @@ $outlet_result = mysqli_query($conn, $outlet_query);
 $outlet = mysqli_fetch_assoc($outlet_result);
 
 // Date filters
-$date_from = isset($_GET['date_from']) ? $_GET['date_from'] : date('Y-m-d', strtotime('-30 days'));
-$date_to = isset($_GET['date_to']) ? $_GET['date_to'] : date('Y-m-d');
+$date_from = sisCleanDate($_GET['date_from'] ?? '', date('Y-m-d', strtotime('-30 days')));
+$date_to = sisCleanDate($_GET['date_to'] ?? '', date('Y-m-d'));
 $agent_filter = isset($_GET['agent_id']) ? (int)$_GET['agent_id'] : 0;
 $status_filter = isset($_GET['status']) ? mysqli_real_escape_string($conn, (string)($_GET['status'] ?? '')) : '';
 
@@ -101,7 +101,7 @@ if (isset($_GET['export'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visitor Log - <?php echo $outlet['name']; ?></title>
+    <title>Visitor Log - <?php echo e($outlet['name']); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 <link rel="stylesheet" href="<?php echo appAsset('assets/css/sis-page-components.css'); ?>">
@@ -116,11 +116,11 @@ if (isset($_GET['export'])) {
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-md-8">
-                    <h4 class="mb-0"><?php echo $outlet['name']; ?> - Visitor Log</h4>
+                    <h4 class="mb-0"><?php echo e($outlet['name']); ?> - Visitor Log</h4>
                     <p class="text-muted mb-0">Track all customer visits (including sales made by agents & supervisors)</p>
                 </div>
                 <div class="col-md-4 text-md-end">
-                    <a href="?export=1&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&agent_id=<?php echo $agent_filter; ?>&status=<?php echo $status_filter; ?>" class="btn-export">
+                    <a href="?export=1&date_from=<?php echo e($date_from); ?>&date_to=<?php echo e($date_to); ?>&agent_id=<?php echo $agent_filter; ?>&status=<?php echo e($status_filter); ?>" class="btn-export">
                         <i class="bi bi-download"></i> Export CSV
                     </a>
                 </div>
@@ -134,31 +134,31 @@ if (isset($_GET['export'])) {
             <div class="col-sm-6 col-md-2">
                 <div class="stat-card total">
                     <small>Total</small>
-                    <h3><?php echo $stats['total'] ?? 0; ?></h3>
+                    <h3><?php echo e($stats['total'] ?? 0); ?></h3>
                 </div>
             </div>
             <div class="col-sm-6 col-md-2">
                 <div class="stat-card completed">
                     <small>Completed</small>
-                    <h3><?php echo $stats['completed'] ?? 0; ?></h3>
+                    <h3><?php echo e($stats['completed'] ?? 0); ?></h3>
                 </div>
             </div>
             <div class="col-sm-6 col-md-2">
                 <div class="stat-card waiting">
                     <small>Waiting</small>
-                    <h3><?php echo $stats['waiting'] ?? 0; ?></h3>
+                    <h3><?php echo e($stats['waiting'] ?? 0); ?></h3>
                 </div>
             </div>
             <div class="col-sm-6 col-md-2">
                 <div class="stat-card progress">
                     <small>In Progress</small>
-                    <h3><?php echo $stats['in_progress'] ?? 0; ?></h3>
+                    <h3><?php echo e($stats['in_progress'] ?? 0); ?></h3>
                 </div>
             </div>
             <div class="col-sm-6 col-md-2">
                 <div class="stat-card cancelled">
                     <small>Cancelled</small>
-                    <h3><?php echo $stats['cancelled'] ?? 0; ?></h3>
+                    <h3><?php echo e($stats['cancelled'] ?? 0); ?></h3>
                 </div>
             </div>
         </div>
@@ -168,19 +168,19 @@ if (isset($_GET['export'])) {
             <form method="GET" class="row g-3">
                 <div class="col-md-3">
                     <label class="form-label">From Date</label>
-                    <input type="date" class="form-control" name="date_from" value="<?php echo $date_from; ?>">
+                    <input type="date" class="form-control" name="date_from" value="<?php echo e($date_from); ?>">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">To Date</label>
-                    <input type="date" class="form-control" name="date_to" value="<?php echo $date_to; ?>">
+                    <input type="date" class="form-control" name="date_to" value="<?php echo e($date_to); ?>">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Logged By</label>
                     <select class="form-select" name="agent_id">
                         <option value="0">All Staff</option>
                         <?php while($s = mysqli_fetch_assoc($staff)): ?>
-                        <option value="<?php echo $s['id']; ?>" <?php echo $agent_filter == $s['id'] ? 'selected' : ''; ?>>
-                            <?php echo $s['full_name']; ?>
+                        <option value="<?php echo e($s['id']); ?>" <?php echo $agent_filter == $s['id'] ? 'selected' : ''; ?>>
+                            <?php echo e($s['full_name']); ?>
                         </option>
                         <?php endwhile; ?>
                     </select>
@@ -245,10 +245,10 @@ if (isset($_GET['export'])) {
                                         if ($status_class == 'inprogress') $status_class = 'inprogress';
                                         ?>
                                         <span class="status-badge status-<?php echo $status_class; ?>">
-                                            <?php echo $v['status']; ?>
+                                            <?php echo e($v['status']); ?>
                                         </span>
                                     </td>
-                                    <td><?php echo $v['sales_count']; ?></td>
+                                    <td><?php echo e($v['sales_count']); ?></td>
                                     <td class="fw-bold">
                                         <?php if($v['total_amount'] != 0): ?>
                                             D <?php echo number_format($v['total_amount'], 2); ?>

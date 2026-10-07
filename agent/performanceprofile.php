@@ -189,7 +189,7 @@ if ($stmt) {
                             <div class="stat-value">D<?php echo number_format($sales_summary['total_sales'], 2); ?></div>
                             <small class="text-success">
                                 <i class="bi bi-arrow-up"></i> 
-                                <?php echo $sales_summary['total_transactions']; ?> transactions
+                                <?php echo e($sales_summary['total_transactions']); ?> transactions
                             </small>
                         </div>
                         <div class="stat-icon">
@@ -222,7 +222,7 @@ if ($stmt) {
                             <div class="stat-value"><?php echo number_format($visitors_stats['total_visitors']); ?></div>
                             <small class="text-warning">
                                 <i class="bi bi-people"></i> 
-                                <?php echo $visitors_stats['converted']; ?> converted
+                                <?php echo e($visitors_stats['converted']); ?> converted
                             </small>
                         </div>
                         <div class="stat-icon">
@@ -239,7 +239,7 @@ if ($stmt) {
                             <div class="stat-value"><?php echo $conversion_rate; ?>%</div>
                             <small class="text-primary">
                                 <i class="bi bi-check-circle"></i> 
-                                <?php echo $visitors_stats['completed']; ?> completed
+                                <?php echo e($visitors_stats['completed']); ?> completed
                             </small>
                         </div>
                         <div class="stat-icon">
@@ -275,15 +275,15 @@ if ($stmt) {
                     <div class="mt-3">
                         <div class="d-flex justify-content-between mb-2">
                             <span>Total Visitors:</span>
-                            <span class="fw-bold"><?php echo $visitors_stats['total_visitors']; ?></span>
+                            <span class="fw-bold"><?php echo e($visitors_stats['total_visitors']); ?></span>
                         </div>
                         <div class="d-flex justify-content-between mb-2">
                             <span>Converted:</span>
-                            <span class="fw-bold text-success"><?php echo $visitors_stats['converted']; ?></span>
+                            <span class="fw-bold text-success"><?php echo e($visitors_stats['converted']); ?></span>
                         </div>
                         <div class="d-flex justify-content-between">
                             <span>Pending:</span>
-                            <span class="fw-bold text-warning"><?php echo $visitors_stats['pending']; ?></span>
+                            <span class="fw-bold text-warning"><?php echo e($visitors_stats['pending']); ?></span>
                         </div>
                     </div>
                 </div>
@@ -318,7 +318,7 @@ if ($stmt) {
                                     <td>
                                         <strong><?php echo htmlspecialchars($service['service_name']); ?></strong>
                                     </td>
-                                    <td><?php echo $service['transaction_count']; ?></td>
+                                    <td><?php echo e($service['transaction_count']); ?></td>
                                     <td>D<?php echo number_format($service['total_amount'], 2); ?></td>
                                     <td>
                                         <div class="d-flex align-items-center">
@@ -417,17 +417,17 @@ if ($stmt) {
                                 <div class="d-flex justify-content-between">
                                     <div>
                                         <span class="fw-bold">
-                                            <?php echo $shift['login_formatted']; ?>
+                                            <?php echo e($shift['login_formatted']); ?>
                                         </span>
                                         <?php if ($shift['logout_time']): ?>
                                             <span class="text-muted"> → </span>
                                             <span class="fw-bold">
-                                                <?php echo $shift['logout_formatted']; ?>
+                                                <?php echo e($shift['logout_formatted']); ?>
                                             </span>
                                         <?php endif; ?>
                                     </div>
                                     <span class="badge bg-<?php echo $shift['shift_status'] == 'Active' ? 'success' : 'secondary'; ?>">
-                                        <?php echo $shift['shift_status']; ?>
+                                        <?php echo e($shift['shift_status']); ?>
                                     </span>
                                 </div>
                                 <?php if ($shift['logout_time']): ?>
@@ -464,7 +464,7 @@ if ($stmt) {
                         <div class="col-6 mb-3">
                             <div class="p-3 bg-light rounded">
                                 <small class="text-muted d-block">Active Days</small>
-                                <span class="fw-bold sis-u-40b72cba"><?php echo $sales_summary['active_days']; ?></span>
+                                <span class="fw-bold sis-u-40b72cba"><?php echo e($sales_summary['active_days']); ?></span>
                                 <small> / <?php echo $period == 'daily' ? '1' : ($period == 'weekly' ? '7' : date('t', strtotime($selected_date))); ?></small>
                             </div>
                         </div>

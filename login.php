@@ -36,7 +36,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
 
-    $blockedUntil = (int)($_SESSION['sis_login_attempts']['blocked_until'] ?? 0);
+    $loginIp = substr((string)($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45);
+    $blockedUntil = max(
+        (int)($_SESSION['sis_login_attempts']['blocked_until'] ?? 0),
+        $username !== '' ? $loginNow + sisLoginBlockedSeconds($conn, $username, $loginIp, $loginAttemptLimit, $loginAttemptWindow) : 0
+    );
     if ($blockedUntil > $loginNow) {
         $error = 'Too many login attempts. Please wait ' . max(1, $blockedUntil - $loginNow) . ' seconds and try again.';
     } elseif ($error !== '') {
@@ -92,6 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     if ($error === '') {
                         unset($_SESSION['sis_login_attempts']);
+                        sisClearLoginFailures($conn, $username);
                         session_regenerate_id(true);
                         $_SESSION['user_id'] = $uid;
                         $_SESSION['username'] = $user['username'];
@@ -130,8 +135,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($error === '') {
                 $attempts = (int)($_SESSION['sis_login_attempts']['count'] ?? 0) + 1;
                 $_SESSION['sis_login_attempts']['count'] = $attempts;
-                if ($attempts >= $loginAttemptLimit) {
-                    $penalty = min(300, 30 * max(1, $attempts - $loginAttemptLimit + 1));
+                sisRecordLoginFailure($conn, $username, $loginIp);
+                $dbWait = sisLoginBlockedSeconds($conn, $username, $loginIp, $loginAttemptLimit, $loginAttemptWindow);
+                if ($attempts >= $loginAttemptLimit || $dbWait > 0) {
+                    $penalty = max($dbWait, $attempts >= $loginAttemptLimit ? min(300, 30 * max(1, $attempts - $loginAttemptLimit + 1)) : 0);
                     $_SESSION['sis_login_attempts']['blocked_until'] = time() + $penalty;
                     $error = "Too many login attempts. Please wait $penalty seconds and try again.";
                 } else {

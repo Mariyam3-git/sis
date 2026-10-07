@@ -50,7 +50,7 @@ $sql = "SELECT s.id, s.amount, s.payment_status, s.payment_date, s.invoice_numbe
         WHERE $whereSql
         ORDER BY s.payment_date DESC, s.id DESC";
 $result = mysqli_query($conn, $sql);
-$reportError = $result ? '' : mysqli_error($conn);
+$reportError = $result ? '' : sisDbErrorMessage($conn);
 
 $detailRows = [];
 $summaryRows = [];

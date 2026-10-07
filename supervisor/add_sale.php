@@ -233,7 +233,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_visitor'])) {
         exit();
     } else {
         mysqli_rollback($conn);
-        setFlashMessage('Error: ' . mysqli_error($conn), 'danger');
+        setFlashMessage(sisDbErrorMessage($conn), 'danger');
         header("Location: " . $_SERVER['PHP_SELF']);
         exit();
     }
@@ -413,8 +413,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_single_service
     // 1. Mark the sale as Unpaid (available ENUM value) - keeps it out of revenue
     $update_sale = "UPDATE sales SET payment_status = 'Unpaid' WHERE id = $sale_id AND agent_id = $supervisor_id";
     if (!mysqli_query($conn, $update_sale)) {
-        error_log("CANCEL ERROR (sale): " . mysqli_error($conn));
-        setFlashMessage('❌ Failed to update sale status: ' . mysqli_error($conn), 'danger');
+        error_log(sisDbErrorMessage($conn));
+        setFlashMessage(sisDbErrorMessage($conn), 'danger');
         header("Location: " . $_SERVER['PHP_SELF']);
         exit();
     }
@@ -424,7 +424,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_single_service
         $update_visitor = "UPDATE visitors SET status = 'Cancelled', notes = '$safe_notes' 
                            WHERE id = $visitor_id AND agent_id = $supervisor_id";
         if (!mysqli_query($conn, $update_visitor)) {
-            error_log("CANCEL ERROR (visitor): " . mysqli_error($conn));
+            error_log(sisDbErrorMessage($conn));
         }
     }
 
@@ -621,9 +621,9 @@ $services_json = json_encode($services_for_modal);
 
     <div class="container mb-4">
         <?php if(isset($message) && $message): ?>
-        <div class="alert alert-<?php echo $message_type; ?> alert-dismissible fade show small">
+        <div class="alert alert-<?php echo e($message_type); ?> alert-dismissible fade show small">
             <i class="bi bi-<?php echo $message_type == 'success' ? 'check-circle-fill' : 'exclamation-triangle-fill'; ?> me-2"></i>
-            <?php echo $message; ?>
+            <?php echo e($message); ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         <?php endif; ?>
@@ -701,7 +701,7 @@ $services_json = json_encode($services_for_modal);
                                     $current_category = $purpose['category_name'];
                                 }
                             ?>
-                            <option value="<?php echo $purpose['id']; ?>"><?php echo htmlspecialchars($purpose['name']); ?></option>
+                            <option value="<?php echo e($purpose['id']); ?>"><?php echo htmlspecialchars($purpose['name']); ?></option>
                             <?php endwhile; ?>
                             <?php if($current_category != '') echo '</optgroup>'; ?>
                         </select>
@@ -734,13 +734,13 @@ $services_json = json_encode($services_for_modal);
                                     $price_display .= ' 🚨 WITHDRAWAL ONLY';
                                 }
                             ?>
-                                <option value="<?php echo $service['id']; ?>" 
-                                        data-paid="<?php echo $service['is_paid']; ?>"
+                                <option value="<?php echo e($service['id']); ?>" 
+                                        data-paid="<?php echo e($service['is_paid']); ?>"
                                         data-quantity="<?php echo $is_quantity ? 1 : 0; ?>"
-                                        data-price="<?php echo $service['price']; ?>"
+                                        data-price="<?php echo e($service['price']); ?>"
                                         data-is-fixed="<?php echo $is_fixed; ?>"
-                                        data-min="<?php echo $service['min_amount'] ?? 0; ?>"
-                                        data-max="<?php echo $service['max_amount'] ?? 0; ?>"
+                                        data-min="<?php echo e($service['min_amount'] ?? 0); ?>"
+                                        data-max="<?php echo e($service['max_amount'] ?? 0); ?>"
                                         data-withdrawal="<?php echo $is_withdrawal ? 1 : 0; ?>">
                                     <?php echo htmlspecialchars($service['name']) . $price_display; ?>
                                 </option>

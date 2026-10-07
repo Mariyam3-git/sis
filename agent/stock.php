@@ -129,7 +129,7 @@ $visitors = mysqli_query($conn, "SELECT id, name FROM visitors WHERE agent_id = 
                     <strong>Low Stock Alert!</strong>
                     <ul class="mb-0">
                         <?php while($alert = mysqli_fetch_assoc($alerts)): ?>
-                        <li><?php echo $alert['product_name']; ?> - Only <?php echo $alert['current_quantity']; ?> left (Threshold: <?php echo $alert['threshold']; ?>)</li>
+                        <li><?php echo e($alert['product_name']); ?> - Only <?php echo e($alert['current_quantity']); ?> left (Threshold: <?php echo e($alert['threshold']); ?>)</li>
                         <?php endwhile; ?>
                     </ul>
                 </div>
@@ -137,7 +137,7 @@ $visitors = mysqli_query($conn, "SELECT id, name FROM visitors WHERE agent_id = 
         <?php endif; ?>
 
         <?php if($message): ?>
-        <div class="alert alert-<?php echo $message_type; ?>"><?php echo $message; ?></div>
+        <div class="alert alert-<?php echo e($message_type); ?>"><?php echo e($message); ?></div>
         <?php endif; ?>
 
         
@@ -151,13 +151,13 @@ $visitors = mysqli_query($conn, "SELECT id, name FROM visitors WHERE agent_id = 
                 <div class="stock-card <?php echo $status_class; ?>">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
-                            <h6 class="mb-1"><?php echo $item['product_name']; ?></h6>
-                            <small class="text-muted"><?php echo $item['sku']; ?></small>
+                            <h6 class="mb-1"><?php echo e($item['product_name']); ?></h6>
+                            <small class="text-muted"><?php echo e($item['sku']); ?></small>
                             <?php if($item['batch_number']): ?>
-                            <br><small>Batch: <?php echo $item['batch_number']; ?></small>
+                            <br><small>Batch: <?php echo e($item['batch_number']); ?></small>
                             <?php endif; ?>
                         </div>
-                        <span class="quantity"><?php echo $item['quantity']; ?></span>
+                        <span class="quantity"><?php echo e($item['quantity']); ?></span>
                     </div>
                     
                     <div class="mt-2">
@@ -171,7 +171,7 @@ $visitors = mysqli_query($conn, "SELECT id, name FROM visitors WHERE agent_id = 
                     <?php endif; ?>
                     
                     
-                    <button class="btn btn-sell btn-sm mt-2 w-100" onclick="showSellModal(<?php echo $item['product_id']; ?>, <?php echo $item['batch_id'] ?? 0; ?>, '<?php echo $item['product_name']; ?>', <?php echo $item['quantity']; ?>, <?php echo $item['selling_price']; ?>)">
+                    <button class="btn btn-sell btn-sm mt-2 w-100" onclick="showSellModal(<?php echo e($item['product_id']); ?>, <?php echo e($item['batch_id'] ?? 0); ?>, '<?php echo e($item['product_name']); ?>', <?php echo e($item['quantity']); ?>, <?php echo e($item['selling_price']); ?>)">
                         <i class="bi bi-cart"></i> Sell
                     </button>
                 </div>
@@ -219,7 +219,7 @@ $visitors = mysqli_query($conn, "SELECT id, name FROM visitors WHERE agent_id = 
                             <select class="form-select" name="visitor_id" required>
                                 <option value="">Choose visitor</option>
                                 <?php while($v = mysqli_fetch_assoc($visitors)): ?>
-                                <option value="<?php echo $v['id']; ?>"><?php echo $v['name']; ?></option>
+                                <option value="<?php echo e($v['id']); ?>"><?php echo e($v['name']); ?></option>
                                 <?php endwhile; ?>
                             </select>
                         </div>

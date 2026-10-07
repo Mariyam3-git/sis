@@ -12,8 +12,8 @@ if (!hasRole('admin')) {
 $search = isset($_GET['search']) ? mysqli_real_escape_string($conn, (string)($_GET['search'] ?? '')) : '';
 $action_filter = isset($_GET['action_type']) ? mysqli_real_escape_string($conn, (string)($_GET['action_type'] ?? '')) : '';
 $user_filter = isset($_GET['user_id']) ? (int)$_GET['user_id'] : '';
-$date_from = isset($_GET['date_from']) ? $_GET['date_from'] : '';
-$date_to = isset($_GET['date_to']) ? $_GET['date_to'] : '';
+$date_from = sisCleanDate($_GET['date_from'] ?? '', '');
+$date_to = sisCleanDate($_GET['date_to'] ?? '', '');
 
 // Build WHERE clause
 $where_conditions = [];
@@ -116,11 +116,11 @@ $breakdown_result = mysqli_query($conn, $breakdown_query);
             </div>
             <div class="stat-card">
                 <h6><i class="bi bi-calendar"></i> Days Covered</h6>
-                <h3><?php echo $stats['days_covered'] ?? 0; ?></h3>
+                <h3><?php echo e($stats['days_covered'] ?? 0); ?></h3>
             </div>
             <div class="stat-card">
                 <h6><i class="bi bi-people"></i> Active Users</h6>
-                <h3><?php echo $stats['unique_users'] ?? 0; ?></h3>
+                <h3><?php echo e($stats['unique_users'] ?? 0); ?></h3>
             </div>
             <div class="stat-card">
                 <h6><i class="bi bi-funnel"></i> Showing</h6>
@@ -141,8 +141,8 @@ $breakdown_result = mysqli_query($conn, $breakdown_query);
                         <select name="action_type" class="form-select">
                             <option value="">All Actions</option>
                             <?php while($action = mysqli_fetch_assoc($actions_result)): ?>
-                            <option value="<?php echo $action['action_type']; ?>" <?php echo $action_filter == $action['action_type'] ? 'selected' : ''; ?>>
-                                <?php echo $action['action_type']; ?>
+                            <option value="<?php echo e($action['action_type']); ?>" <?php echo $action_filter == $action['action_type'] ? 'selected' : ''; ?>>
+                                <?php echo e($action['action_type']); ?>
                             </option>
                             <?php endwhile; ?>
                         </select>
@@ -155,19 +155,19 @@ $breakdown_result = mysqli_query($conn, $breakdown_query);
                             mysqli_data_seek($users_result, 0);
                             while($user = mysqli_fetch_assoc($users_result)): 
                             ?>
-                            <option value="<?php echo $user['id']; ?>" <?php echo $user_filter == $user['id'] ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($user['full_name'] ?? $user['username']); ?> (<?php echo $user['role']; ?>)
+                            <option value="<?php echo e($user['id']); ?>" <?php echo $user_filter == $user['id'] ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($user['full_name'] ?? $user['username']); ?> (<?php echo e($user['role']); ?>)
                             </option>
                             <?php endwhile; ?>
                         </select>
                     </div>
                     <div class="filter-group">
                         <label><i class="bi bi-calendar"></i> From</label>
-                        <input type="date" name="date_from" class="form-control sis-w-150" value="<?php echo $date_from; ?>">
+                        <input type="date" name="date_from" class="form-control sis-w-150" value="<?php echo e($date_from); ?>">
                     </div>
                     <div class="filter-group">
                         <label><i class="bi bi-calendar"></i> To</label>
-                        <input type="date" name="date_to" class="form-control sis-w-150" value="<?php echo $date_to; ?>">
+                        <input type="date" name="date_to" class="form-control sis-w-150" value="<?php echo e($date_to); ?>">
                     </div>
                     <div class="filter-group sis-u-9102618d">
                         <label>&nbsp;</label>
@@ -201,9 +201,9 @@ $breakdown_result = mysqli_query($conn, $breakdown_query);
                                 (strpos($break['action_type'], 'ADD') !== false ? 'success' : 
                                 (strpos($break['action_type'], 'UPDATE') !== false ? 'info' : 'secondary')); 
                         ?>">
-                            <?php echo $break['count']; ?>
+                            <?php echo e($break['count']); ?>
                         </div>
-                        <small><?php echo $break['action_type']; ?></small>
+                        <small><?php echo e($break['action_type']); ?></small>
                     </div>
                     <?php endwhile; ?>
                 </div>
@@ -258,7 +258,7 @@ $breakdown_result = mysqli_query($conn, $breakdown_query);
                                     <td>
                                         <strong><?php echo htmlspecialchars($log['full_name'] ?? $log['username'] ?? 'System'); ?></strong>
                                         <?php if($log['user_id']): ?>
-                                        <small class="d-block text-muted">ID: <?php echo $log['user_id']; ?></small>
+                                        <small class="d-block text-muted">ID: <?php echo e($log['user_id']); ?></small>
                                         <?php endif; ?>
                                      </td>
                                     <td>
@@ -275,13 +275,13 @@ $breakdown_result = mysqli_query($conn, $breakdown_query);
                                      </td>
                                     <td>
                                         <?php if($log['record_id']): ?>
-                                        <code><?php echo $log['record_id']; ?></code>
+                                        <code><?php echo e($log['record_id']); ?></code>
                                         <?php else: ?>
                                         <span class="text-muted">—</span>
                                         <?php endif; ?>
                                      </td>
                                     <td>
-                                        <code><?php echo $log['ip_address'] ?? '-'; ?></code>
+                                        <code><?php echo e($log['ip_address'] ?? '-'); ?></code>
                                      </td>
                                 </tr>
                                 <?php endwhile; ?>
@@ -303,7 +303,7 @@ $breakdown_result = mysqli_query($conn, $breakdown_query);
                 <nav aria-label="Page navigation" class="mt-4 mb-3">
                     <ul class="pagination justify-content-center">
                         <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
-                            <a class="page-link" href="?page=<?php echo $page - 1; ?>&search=<?php echo urlencode($search); ?>&action_type=<?php echo urlencode($action_filter); ?>&user_id=<?php echo $user_filter; ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>">
+                            <a class="page-link" href="?page=<?php echo $page - 1; ?>&search=<?php echo urlencode($search); ?>&action_type=<?php echo urlencode($action_filter); ?>&user_id=<?php echo $user_filter; ?>&date_from=<?php echo e($date_from); ?>&date_to=<?php echo e($date_to); ?>">
                                 <i class="bi bi-chevron-left"></i> Previous
                             </a>
                         </li>
@@ -312,7 +312,7 @@ $breakdown_result = mysqli_query($conn, $breakdown_query);
                         $end_page = min($total_pages, $page + 2);
                         if($start_page > 1): ?>
                         <li class="page-item">
-                            <a class="page-link" href="?page=1&search=<?php echo urlencode($search); ?>&action_type=<?php echo urlencode($action_filter); ?>&user_id=<?php echo $user_filter; ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>">1</a>
+                            <a class="page-link" href="?page=1&search=<?php echo urlencode($search); ?>&action_type=<?php echo urlencode($action_filter); ?>&user_id=<?php echo $user_filter; ?>&date_from=<?php echo e($date_from); ?>&date_to=<?php echo e($date_to); ?>">1</a>
                         </li>
                         <?php if($start_page > 2): ?>
                         <li class="page-item disabled"><span class="page-link">...</span></li>
@@ -320,7 +320,7 @@ $breakdown_result = mysqli_query($conn, $breakdown_query);
                         
                         <?php for($i = $start_page; $i <= $end_page; $i++): ?>
                         <li class="page-item <?php echo $page == $i ? 'active' : ''; ?>">
-                            <a class="page-link" href="?page=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>&action_type=<?php echo urlencode($action_filter); ?>&user_id=<?php echo $user_filter; ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>"><?php echo $i; ?></a>
+                            <a class="page-link" href="?page=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>&action_type=<?php echo urlencode($action_filter); ?>&user_id=<?php echo $user_filter; ?>&date_from=<?php echo e($date_from); ?>&date_to=<?php echo e($date_to); ?>"><?php echo $i; ?></a>
                         </li>
                         <?php endfor; ?>
                         
@@ -329,12 +329,12 @@ $breakdown_result = mysqli_query($conn, $breakdown_query);
                         <li class="page-item disabled"><span class="page-link">...</span></li>
                         <?php endif; ?>
                         <li class="page-item">
-                            <a class="page-link" href="?page=<?php echo $total_pages; ?>&search=<?php echo urlencode($search); ?>&action_type=<?php echo urlencode($action_filter); ?>&user_id=<?php echo $user_filter; ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>"><?php echo $total_pages; ?></a>
+                            <a class="page-link" href="?page=<?php echo $total_pages; ?>&search=<?php echo urlencode($search); ?>&action_type=<?php echo urlencode($action_filter); ?>&user_id=<?php echo $user_filter; ?>&date_from=<?php echo e($date_from); ?>&date_to=<?php echo e($date_to); ?>"><?php echo $total_pages; ?></a>
                         </li>
                         <?php endif; ?>
                         
                         <li class="page-item <?php echo $page >= $total_pages ? 'disabled' : ''; ?>">
-                            <a class="page-link" href="?page=<?php echo $page + 1; ?>&search=<?php echo urlencode($search); ?>&action_type=<?php echo urlencode($action_filter); ?>&user_id=<?php echo $user_filter; ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>">
+                            <a class="page-link" href="?page=<?php echo $page + 1; ?>&search=<?php echo urlencode($search); ?>&action_type=<?php echo urlencode($action_filter); ?>&user_id=<?php echo $user_filter; ?>&date_from=<?php echo e($date_from); ?>&date_to=<?php echo e($date_to); ?>">
                                 Next <i class="bi bi-chevron-right"></i>
                             </a>
                         </li>

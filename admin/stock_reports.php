@@ -15,8 +15,8 @@ $pending_requests = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as c
 
 // Report parameters
 $report_type = isset($_GET['type']) ? $_GET['type'] : 'daily';
-$date_from = isset($_GET['date_from']) ? $_GET['date_from'] : date('Y-m-d');
-$date_to = isset($_GET['date_to']) ? $_GET['date_to'] : date('Y-m-d');
+$date_from = sisCleanDate($_GET['date_from'] ?? '', date('Y-m-d'));
+$date_to = sisCleanDate($_GET['date_to'] ?? '', date('Y-m-d'));
 $outlet_filter = isset($_GET['outlet_id']) ? (int)$_GET['outlet_id'] : 0;
 $product_filter = isset($_GET['product_id']) ? (int)$_GET['product_id'] : 0;
 
@@ -276,16 +276,16 @@ if (isset($_GET['export'])) {
             </div>
 
             <form method="GET" class="filter-grid">
-                <input type="hidden" name="type" value="<?php echo $report_type; ?>">
+                <input type="hidden" name="type" value="<?php echo e($report_type); ?>">
                 
                 <?php if($report_type == 'custom'): ?>
                 <div class="filter-group">
                     <label>From Date</label>
-                    <input type="date" class="form-control" name="date_from" value="<?php echo $date_from; ?>">
+                    <input type="date" class="form-control" name="date_from" value="<?php echo e($date_from); ?>">
                 </div>
                 <div class="filter-group">
                     <label>To Date</label>
-                    <input type="date" class="form-control" name="date_to" value="<?php echo $date_to; ?>">
+                    <input type="date" class="form-control" name="date_to" value="<?php echo e($date_to); ?>">
                 </div>
                 <?php endif; ?>
                 
@@ -294,8 +294,8 @@ if (isset($_GET['export'])) {
                     <select class="form-select" name="outlet_id">
                         <option value="0">All Outlets</option>
                         <?php while($o = mysqli_fetch_assoc($outlets)): ?>
-                        <option value="<?php echo $o['id']; ?>" <?php echo $outlet_filter == $o['id'] ? 'selected' : ''; ?>>
-                            <?php echo $o['name']; ?>
+                        <option value="<?php echo e($o['id']); ?>" <?php echo $outlet_filter == $o['id'] ? 'selected' : ''; ?>>
+                            <?php echo e($o['name']); ?>
                         </option>
                         <?php endwhile; ?>
                     </select>
@@ -306,8 +306,8 @@ if (isset($_GET['export'])) {
                     <select class="form-select" name="product_id">
                         <option value="0">All Products</option>
                         <?php while($p = mysqli_fetch_assoc($products)): ?>
-                        <option value="<?php echo $p['id']; ?>" <?php echo $product_filter == $p['id'] ? 'selected' : ''; ?>>
-                            <?php echo $p['name']; ?>
+                        <option value="<?php echo e($p['id']); ?>" <?php echo $product_filter == $p['id'] ? 'selected' : ''; ?>>
+                            <?php echo e($p['name']); ?>
                         </option>
                         <?php endwhile; ?>
                     </select>
@@ -317,7 +317,7 @@ if (isset($_GET['export'])) {
                     <label>&nbsp;</label>
                     <div>
                         <button type="submit" class="btn-primary">Apply Filters</button>
-                        <a href="stock_reports.php?type=<?php echo $report_type; ?>" class="btn-outline-secondary">Reset</a>
+                        <a href="stock_reports.php?type=<?php echo e($report_type); ?>" class="btn-outline-secondary">Reset</a>
                     </div>
                 </div>
             </form>
@@ -326,7 +326,7 @@ if (isset($_GET['export'])) {
                 <span class="period-badge">
                     <i class="bi bi-calendar3"></i> <?php echo $period_label; ?>
                 </span>
-                <a href="?export=1&type=<?php echo $report_type; ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&outlet_id=<?php echo $outlet_filter; ?>&product_id=<?php echo $product_filter; ?>" class="btn-success">
+                <a href="?export=1&type=<?php echo e($report_type); ?>&date_from=<?php echo e($date_from); ?>&date_to=<?php echo e($date_to); ?>&outlet_id=<?php echo $outlet_filter; ?>&product_id=<?php echo $product_filter; ?>" class="btn-success">
                     <i class="bi bi-download"></i> Export CSV
                 </a>
             </div>
@@ -336,22 +336,22 @@ if (isset($_GET['export'])) {
         <div class="stats-grid">
             <div class="stat-card">
                 <h6>Total Movements</h6>
-                <h2><?php echo $summary['total_movements'] ?? 0; ?></h2>
+                <h2><?php echo e($summary['total_movements'] ?? 0); ?></h2>
                 <small>Transactions</small>
             </div>
             <div class="stat-card">
                 <h6>Received</h6>
-                <h2><?php echo $summary['total_received'] ?? 0; ?></h2>
+                <h2><?php echo e($summary['total_received'] ?? 0); ?></h2>
                 <small>Units in</small>
             </div>
             <div class="stat-card">
                 <h6>Sold</h6>
-                <h2><?php echo $summary['total_sold'] ?? 0; ?></h2>
+                <h2><?php echo e($summary['total_sold'] ?? 0); ?></h2>
                 <small>Units out</small>
             </div>
             <div class="stat-card">
                 <h6>Transferred</h6>
-                <h2><?php echo $summary['total_transferred'] ?? 0; ?></h2>
+                <h2><?php echo e($summary['total_transferred'] ?? 0); ?></h2>
                 <small>Between outlets</small>
             </div>
         </div>
@@ -386,11 +386,11 @@ if (isset($_GET['export'])) {
                             <?php while($t = mysqli_fetch_assoc($top_selling)): ?>
                             <tr>
                                 <td>
-                                    <strong><?php echo $t['name']; ?></strong>
-                                    <br><small><?php echo $t['sku']; ?></small>
+                                    <strong><?php echo e($t['name']); ?></strong>
+                                    <br><small><?php echo e($t['sku']); ?></small>
                                 </td>
-                                <td class="fw-bold"><?php echo $t['total_sold']; ?></td>
-                                <td><?php echo $t['outlets_sold']; ?></td>
+                                <td class="fw-bold"><?php echo e($t['total_sold']); ?></td>
+                                <td><?php echo e($t['outlets_sold']); ?></td>
                             </tr>
                             <?php endwhile; ?>
                         </tbody>
@@ -418,13 +418,13 @@ if (isset($_GET['export'])) {
                     <tbody>
                         <?php while($s = mysqli_fetch_assoc($stock_by_outlet)): ?>
                         <tr>
-                            <td><strong><?php echo $s['outlet_name']; ?></strong></td>
-                            <td><?php echo $s['total_products'] ?? 0; ?></td>
+                            <td><strong><?php echo e($s['outlet_name']); ?></strong></td>
+                            <td><?php echo e($s['total_products'] ?? 0); ?></td>
                             <td><?php echo number_format($s['total_items'] ?? 0); ?></td>
                             <td class="fw-bold text-success">D <?php echo number_format($s['total_value'] ?? 0, 2); ?></td>
                             <td>
                                 <?php if(($s['low_stock_count'] ?? 0) > 0): ?>
-                                <span class="badge bg-warning text-dark"><?php echo $s['low_stock_count']; ?> items</span>
+                                <span class="badge bg-warning text-dark"><?php echo e($s['low_stock_count']); ?> items</span>
                                 <?php else: ?>
                                 <span class="badge bg-success">OK</span>
                                 <?php endif; ?>
@@ -474,16 +474,16 @@ if (isset($_GET['export'])) {
                         ?>
                         <tr class="<?php echo $row_class; ?>">
                             <td>
-                                <strong><?php echo $p['product_name']; ?></strong>
-                                <br><small><?php echo $p['sku']; ?></small>
+                                <strong><?php echo e($p['product_name']); ?></strong>
+                                <br><small><?php echo e($p['sku']); ?></small>
                             </td>
-                            <td class="text-success"><?php echo $p['received'] ?? 0; ?></td>
-                            <td class="text-primary"><?php echo $p['sold'] ?? 0; ?></td>
-                            <td class="text-info"><?php echo $p['transferred'] ?? 0; ?></td>
+                            <td class="text-success"><?php echo e($p['received'] ?? 0); ?></td>
+                            <td class="text-primary"><?php echo e($p['sold'] ?? 0); ?></td>
+                            <td class="text-info"><?php echo e($p['transferred'] ?? 0); ?></td>
                             <td class="fw-bold"><?php echo $current_stock; ?></td>
                             <td>
                                 <span class="badge bg-<?php echo $status_class; ?>">
-                                    <?php echo $status_text; ?>
+                                    <?php echo e($status_text); ?>
                                 </span>
                             </td>
                         </tr>
@@ -512,14 +512,14 @@ if (isset($_GET['export'])) {
                     <tbody>
                         <?php while($l = mysqli_fetch_assoc($low_stock_items)): ?>
                         <tr>
-                            <td><?php echo $l['outlet_name']; ?></td>
+                            <td><?php echo e($l['outlet_name']); ?></td>
                             <td>
-                                <strong><?php echo $l['product_name']; ?></strong>
-                                <br><small><?php echo $l['sku']; ?></small>
+                                <strong><?php echo e($l['product_name']); ?></strong>
+                                <br><small><?php echo e($l['sku']); ?></small>
                             </td>
-                            <td class="fw-bold text-danger"><?php echo $l['quantity']; ?></td>
-                            <td><?php echo $l['low_stock_threshold']; ?></td>
-                            <td class="text-warning"><?php echo $l['needed']; ?></td>
+                            <td class="fw-bold text-danger"><?php echo e($l['quantity']); ?></td>
+                            <td><?php echo e($l['low_stock_threshold']); ?></td>
+                            <td class="text-warning"><?php echo e($l['needed']); ?></td>
                         </tr>
                         <?php endwhile; ?>
                     </tbody>
@@ -551,8 +551,8 @@ if (isset($_GET['export'])) {
                                 <?php while($m = mysqli_fetch_assoc($movements)): ?>
                                 <tr>
                                     <td><?php echo date('d/m/Y H:i', strtotime($m['created_at'])); ?></td>
-                                    <td><?php echo $m['outlet_name']; ?></td>
-                                    <td><?php echo $m['product_name']; ?></td>
+                                    <td><?php echo e($m['outlet_name']); ?></td>
+                                    <td><?php echo e($m['product_name']); ?></td>
                                     <td>
                                         <span class="badge bg-<?php 
                                             echo $m['movement_type'] == 'received' ? 'success' : 
@@ -562,8 +562,8 @@ if (isset($_GET['export'])) {
                                             <?php echo ucfirst($m['movement_type']); ?>
                                         </span>
                                     </td>
-                                    <td class="fw-bold"><?php echo $m['quantity']; ?></td>
-                                    <td><?php echo $m['user_name']; ?></td>
+                                    <td class="fw-bold"><?php echo e($m['quantity']); ?></td>
+                                    <td><?php echo e($m['user_name']); ?></td>
                                 </tr>
                                 <?php endwhile; ?>
                             <?php else: ?>
@@ -589,8 +589,8 @@ if (isset($_GET['export'])) {
         while($t = mysqli_fetch_assoc($daily_trend)): 
         ?>
         trendLabels.push('<?php echo date('d M', strtotime($t['date'])); ?>');
-        receivedData.push(<?php echo $t['received'] ?? 0; ?>);
-        soldData.push(<?php echo $t['sold'] ?? 0; ?>);
+        receivedData.push(<?php echo e($t['received'] ?? 0); ?>);
+        soldData.push(<?php echo e($t['sold'] ?? 0); ?>);
         <?php endwhile; ?>
 
         new Chart(document.getElementById('trendChart'), {

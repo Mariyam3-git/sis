@@ -178,7 +178,7 @@ $top_alerts = array_slice(array_filter($products_data, function ($item) {
                                     <td class="text-end text-success fw-semibold"><?php echo number_format((int)$item['stock_in']); ?></td>
                                     <td class="text-end text-danger fw-semibold"><?php echo number_format((int)$item['stock_out']); ?></td>
                                     <td class="text-end fw-bold"><?php echo number_format($remaining); ?></td>
-                                    <td><span class="badge bg-<?php echo $status[1]; ?>"><?php echo $status[0]; ?></span></td>
+                                    <td><span class="badge bg-<?php echo e($status[1]); ?>"><?php echo e($status[0]); ?></span></td>
                                     <td class="text-end"><?php echo e($currency_symbol) . ' ' . number_format($remaining * (float)$item['selling_price'], 2); ?></td>
                                 </tr>
                             <?php endforeach; else: ?>

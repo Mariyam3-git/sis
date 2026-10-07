@@ -57,6 +57,22 @@ if (!function_exists('sisRenderFooter')) {
             // Turn legacy delete/approve/restore links into CSRF-protected POST forms.
             // Their original GET URLs are never followed, preventing crawler/prefetch actions.
             const sisMutationKeys = ['delete','hard_delete','restore','deactivate','activate','approve','reject','fulfill','receive','toggle_paid'];
+            // Submit a set of fields as a CSRF-protected POST to the given path (defaults to this page).
+            window.sisSubmitPost = function (fields, path) {
+                const form = document.createElement('form');
+                form.method = 'post';
+                form.action = path || window.location.pathname;
+                const values = Object.assign({}, fields, { csrf_token: sisPageCsrfToken, sis_post_once_token: sisPagePostOnceToken });
+                Object.keys(values).forEach(function (key) {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = key;
+                    input.value = values[key];
+                    form.appendChild(input);
+                });
+                document.body.appendChild(form);
+                form.submit();
+            };
             document.querySelectorAll('a[href*="?"]').forEach(function (link) {
                 let url;
                 try { url = new URL(link.getAttribute('href'), window.location.href); } catch (err) { return; }
@@ -64,30 +80,14 @@ if (!function_exists('sisRenderFooter')) {
                 if (!mutationKey || url.origin !== window.location.origin) return;
                 link.setAttribute('href', '#');
                 link.addEventListener('click', function (event) {
+                    // An inline onclick="return confirm(...)" that was cancelled has already prevented the default.
+                    if (event.defaultPrevented) return;
                     event.preventDefault();
-                    const form = document.createElement('form');
-                    form.method = 'post';
-                    form.action = url.pathname;
+                    const fields = {};
                     [mutationKey, 'id', 'reason'].forEach(function (key) {
-                        if (!url.searchParams.has(key)) return;
-                        const input = document.createElement('input');
-                        input.type = 'hidden';
-                        input.name = key;
-                        input.value = url.searchParams.get(key);
-                        form.appendChild(input);
+                        if (url.searchParams.has(key)) fields[key] = url.searchParams.get(key);
                     });
-                    const csrf = document.createElement('input');
-                    csrf.type = 'hidden';
-                    csrf.name = 'csrf_token';
-                    csrf.value = sisPageCsrfToken;
-                    form.appendChild(csrf);
-                    const once = document.createElement('input');
-                    once.type = 'hidden';
-                    once.name = 'sis_post_once_token';
-                    once.value = sisPagePostOnceToken;
-                    form.appendChild(once);
-                    document.body.appendChild(form);
-                    form.submit();
+                    window.sisSubmitPost(fields, url.pathname);
                 });
             });
 

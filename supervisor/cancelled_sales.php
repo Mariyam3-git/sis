@@ -324,7 +324,7 @@ sisRenderLayoutStart('supervisor', 'Cancelled Sales Audit', 'All cancellations b
                                 <div class="kpi-label">
                                     <?php echo htmlspecialchars($agent); ?>
                                     <span class="<?php echo $chip_class; ?>" style="margin-left: 6px; font-size: 10px; padding: 2px 8px;">
-                                        <?php echo $role_label; ?>
+                                        <?php echo e($role_label); ?>
                                     </span>
                                 </div>
                                 <div class="kpi-value" style="font-size: 1.4rem;"><?php echo number_format($stats['count']); ?> cancelled</div>

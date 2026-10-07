@@ -21,8 +21,8 @@ $has_icon = in_array('icon', $columns);
 $has_color = in_array('color', $columns);
 
 // Delete category
-if (isset($_GET['delete'])) {
-    $id = (int)$_GET['delete'];
+if (sisPostAction('delete')) {
+    $id = (int)$_POST['delete'];
     
     // Check if category has products
     $check = mysqli_query($conn, "SELECT COUNT(*) as count FROM stock_products WHERE category_id = $id");
@@ -42,7 +42,7 @@ if (isset($_GET['delete'])) {
 }
 
 // Add/Edit category
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !sisIsRowActionPost()) {
     $name = mysqli_real_escape_string($conn, (string)($_POST['name'] ?? ''));
     $description = mysqli_real_escape_string($conn, (string)($_POST['description'] ?? ''));
     $icon = $has_icon ? mysqli_real_escape_string($conn, (string)($_POST['icon'] ?? '')) : 'bi-folder';
@@ -89,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = 'Category saved!';
         $message_type = 'success';
     } else {
-        $message = 'Error: ' . mysqli_error($conn);
+        $message = sisDbErrorMessage($conn);
         $message_type = 'danger';
     }
 }
@@ -163,7 +163,7 @@ $icons = ['bi-sim', 'bi-credit-card', 'bi-headphones', 'bi-wifi', 'bi-phone', 'b
         </div>
 
         <?php if($message): ?>
-        <div class="alert alert-<?php echo $message_type; ?>"><?php echo $message; ?></div>
+        <div class="alert alert-<?php echo e($message_type); ?>"><?php echo e($message); ?></div>
         <?php endif; ?>
 
         
@@ -177,18 +177,18 @@ $icons = ['bi-sim', 'bi-credit-card', 'bi-headphones', 'bi-wifi', 'bi-phone', 'b
                 <div class="card-body">
                     <form method="POST">
                         <?php if($edit_category): ?>
-                        <input type="hidden" name="id" value="<?php echo $edit_category['id']; ?>">
+                        <input type="hidden" name="id" value="<?php echo e($edit_category['id']); ?>">
                         <?php endif; ?>
                         
                         <div class="mb-3">
                             <label class="form-label">Category Name</label>
                             <input type="text" class="form-control" name="name" 
-                                   value="<?php echo $edit_category['name'] ?? ''; ?>" required>
+                                   value="<?php echo e($edit_category['name'] ?? ''); ?>" required>
                         </div>
                         
                         <div class="mb-3">
                             <label class="form-label">Description</label>
-                            <textarea class="form-control" name="description" rows="2"><?php echo $edit_category['description'] ?? ''; ?></textarea>
+                            <textarea class="form-control" name="description" rows="2"><?php echo e($edit_category['description'] ?? ''); ?></textarea>
                         </div>
                         
                         <?php if($has_icon): ?>
@@ -210,7 +210,7 @@ $icons = ['bi-sim', 'bi-credit-card', 'bi-headphones', 'bi-wifi', 'bi-phone', 'b
                         <div class="mb-3">
                             <label class="form-label">Color</label>
                             <input type="color" class="form-control" name="color" 
-                                   value="<?php echo $edit_category['color'] ?? '#6c757d'; ?>" 
+                                   value="<?php echo e($edit_category['color'] ?? '#6c757d'); ?>" 
                                   >
                         </div>
                         <?php endif; ?>
@@ -219,7 +219,7 @@ $icons = ['bi-sim', 'bi-credit-card', 'bi-headphones', 'bi-wifi', 'bi-phone', 'b
                         <div class="mb-3">
                             <label class="form-label">Sort Order</label>
                             <input type="number" class="form-control" name="sort_order" 
-                                   value="<?php echo $edit_category['sort_order'] ?? '0'; ?>">
+                                   value="<?php echo e($edit_category['sort_order'] ?? '0'); ?>">
                             <small class="text-muted">Lower numbers appear first</small>
                         </div>
                         <?php endif; ?>
@@ -261,29 +261,29 @@ $icons = ['bi-sim', 'bi-credit-card', 'bi-headphones', 'bi-wifi', 'bi-phone', 'b
                                 <tr>
                                     <?php if($has_sort_order): ?>
                                     <td>
-                                        <span class="badge bg-secondary"><?php echo $category['sort_order'] ?? 0; ?></span>
+                                        <span class="badge bg-secondary"><?php echo e($category['sort_order'] ?? 0); ?></span>
                                     </td>
                                     <?php endif; ?>
                                     <td>
                                         <div class="sis-u-b512c985">
                                             <span class="category-chip sis-dynamic-color" data-color="<?php echo e($category['color'] ?? '#6c757d'); ?>">
-                                                <i class="bi <?php echo $category['icon'] ?? 'bi-folder'; ?>"></i>
+                                                <i class="bi <?php echo e($category['icon'] ?? 'bi-folder'); ?>"></i>
                                                 <span><?php echo htmlspecialchars($category['name']); ?></span>
                                             </span>
                                         </div>
                                         <?php if(!empty($category['description'])): ?>
-                                        <small class="sis-u-a74a8858"><?php echo $category['description']; ?></small>
+                                        <small class="sis-u-a74a8858"><?php echo e($category['description']); ?></small>
                                         <?php endif; ?>
                                     </td>
                                     <td>
                                         <span class="badge bg-info"><?php echo $count; ?> products</span>
                                     </td>
                                     <td>
-                                        <a href="?edit=<?php echo $category['id']; ?>" class="action-btn" title="Edit">
+                                        <a href="?edit=<?php echo e($category['id']); ?>" class="action-btn" title="Edit">
                                             <i class="bi bi-pencil"></i>
                                         </a>
                                         <?php if($count == 0): ?>
-                                        <a href="?delete=<?php echo $category['id']; ?>" class="action-btn text-danger" 
+                                        <a href="?delete=<?php echo e($category['id']); ?>" class="action-btn text-danger" 
                                            onclick="return confirm('Delete this category?')" title="Delete">
                                             <i class="bi bi-trash"></i>
                                         </a>

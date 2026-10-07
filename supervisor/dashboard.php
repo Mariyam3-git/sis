@@ -8,7 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verifyCsrf()) {
     exit('Security check failed. Please return to the previous page and try again.');
 }
 
-$outlet_id = $_SESSION['outlet_id'];
+$outlet_id = (int)($_SESSION['outlet_id'] ?? 0);
 $supervisor_id = $_SESSION['user_id'];
 $supervisor_name = $_SESSION['full_name'];
 
@@ -31,22 +31,42 @@ $message_type = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_visitor_status'])) {
     $visitor_id = (int)$_POST['visitor_id'];
     $status = $_POST['status'] ?? 'Waiting';
-    markVisitorStatus($conn, $visitor_id, $status);
-    logAction($conn, 'UPDATE_VISITOR_STATUS', $visitor_id);
-    $message = 'Visitor status updated!';
-    $message_type = 'success';
+    // Only visitors registered at this supervisor's outlet can be changed.
+    $owned = false;
+    $stmt = mysqli_prepare($conn, 'SELECT id FROM visitors WHERE id = ? AND outlet_id = ? LIMIT 1');
+    if ($stmt) {
+        mysqli_stmt_bind_param($stmt, 'ii', $visitor_id, $outlet_id);
+        mysqli_stmt_execute($stmt);
+        $owned = (bool)mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+    }
+    if ($owned) {
+        markVisitorStatus($conn, $visitor_id, $status);
+        logAction($conn, 'UPDATE_VISITOR_STATUS', $visitor_id);
+        $message = 'Visitor status updated!';
+        $message_type = 'success';
+    } else {
+        $message = 'That visitor does not belong to your outlet.';
+        $message_type = 'danger';
+    }
 }
 
-// Handle payment status update
+// Handle payment status update. Only sales at this supervisor's outlet can be changed.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_payment'])) {
     $sale_id = (int)$_POST['sale_id'];
-    $payment_status = mysqli_real_escape_string($conn, (string)($_POST['payment_status'] ?? ''));
-    
-    $update = "UPDATE sales SET payment_status = '$payment_status' WHERE id = $sale_id";
-    if (mysqli_query($conn, $update)) {
+    $payment_status = (string)($_POST['payment_status'] ?? '');
+    $stmt = in_array($payment_status, ['Paid', 'Pending', 'Unpaid'], true)
+        ? mysqli_prepare($conn, 'UPDATE sales SET payment_status = ? WHERE id = ? AND outlet_id = ?')
+        : false;
+    if ($stmt) {
+        mysqli_stmt_bind_param($stmt, 'sii', $payment_status, $sale_id, $outlet_id);
+    }
+    if ($stmt && mysqli_stmt_execute($stmt)) {
         logAction($conn, 'UPDATE_PAYMENT', $sale_id);
         $message = 'Payment status updated!';
         $message_type = 'success';
+    } else {
+        $message = 'Payment status could not be updated.';
+        $message_type = 'danger';
     }
 }
 
@@ -57,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_request'])) {
     $product_id = (int)$_POST['product_id'];
     $quantity = (int)$_POST['quantity'];
     $priority = mysqli_real_escape_string($conn, (string)($_POST['priority'] ?? ''));
-    $required_by = !empty($_POST['required_by']) ? "'" . $_POST['required_by'] . "'" : 'NULL';
+    $required_by = sisCleanDate($_POST['required_by'] ?? '') !== '' ? "'" . sisCleanDate($_POST['required_by']) . "'" : 'NULL';
     $request_notes = mysqli_real_escape_string($conn, (string)($_POST['request_notes'] ?? ''));
     
     // Generate reference number
@@ -82,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_request'])) {
             $message_type = 'success';
             logAction($conn, 'STOCK_REQUEST', $request_id);
         } else {
-            $message = "Error: " . mysqli_error($conn);
+            $message = sisDbErrorMessage($conn);
             $message_type = 'danger';
         }
     }
@@ -257,7 +277,7 @@ $staff_summary = mysqli_fetch_assoc(mysqli_query($conn, "
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Supervisor Dashboard - <?php echo $outlet['name']; ?></title>
+    <title>Supervisor Dashboard - <?php echo e($outlet['name']); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 <link rel="stylesheet" href="<?php echo appAsset('assets/css/sis-page-components.css'); ?>">
@@ -285,11 +305,11 @@ $staff_summary = mysqli_fetch_assoc(mysqli_query($conn, "
             <form method="GET" class="row g-3 align-items-end">
                 <div class="col-md-4">
                     <label class="form-label small">From Date</label>
-                    <input type="date" class="form-control form-control-sm" name="date_from" value="<?php echo $date_from; ?>">
+                    <input type="date" class="form-control form-control-sm" name="date_from" value="<?php echo e($date_from); ?>">
                 </div>
                 <div class="col-md-4">
                     <label class="form-label small">To Date</label>
-                    <input type="date" class="form-control form-control-sm" name="date_to" value="<?php echo $date_to; ?>">
+                    <input type="date" class="form-control form-control-sm" name="date_to" value="<?php echo e($date_to); ?>">
                 </div>
                 <div class="col-md-4">
                     <button type="submit" class="btn btn-primary btn-sm">Apply</button>
@@ -299,8 +319,8 @@ $staff_summary = mysqli_fetch_assoc(mysqli_query($conn, "
         </div>
 
         <?php if($message): ?>
-        <div class="alert alert-<?php echo $message_type; ?> alert-dismissible fade show small">
-            <?php echo $message; ?>
+        <div class="alert alert-<?php echo e($message_type); ?> alert-dismissible fade show small">
+            <?php echo e($message); ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         <?php endif; ?>
@@ -323,12 +343,12 @@ $staff_summary = mysqli_fetch_assoc(mysqli_query($conn, "
             </div>
             <div class="stat-card">
                 <h6>Today's Sales</h6>
-                <h2><?php echo $sales_today['count'] ?? 0; ?></h2>
+                <h2><?php echo e($sales_today['count'] ?? 0); ?></h2>
                 <small>D <?php echo number_format($sales_today['total'] ?? 0, 2); ?></small>
             </div>
             <div class="stat-card">
                 <h6>Pending Payments</h6>
-                <h2><?php echo $pending_payments_today['count'] ?? 0; ?></h2>
+                <h2><?php echo e($pending_payments_today['count'] ?? 0); ?></h2>
                 <small>D <?php echo number_format($pending_payments_today['total'] ?? 0, 2); ?></small>
             </div>
             <div class="stat-card">
@@ -392,7 +412,7 @@ $staff_summary = mysqli_fetch_assoc(mysqli_query($conn, "
                                     <td><?php echo $v['agent_name'] ? htmlspecialchars($v['agent_name']) : '-'; ?></td>
                                     <td>
                                         <span class="status-badge status-<?php echo strtolower(str_replace(' ', '', $v['status'])); ?>">
-                                            <?php echo $v['status']; ?>
+                                            <?php echo e($v['status']); ?>
                                         </span>
                                     </td>
                                 </tr>
@@ -413,7 +433,7 @@ $staff_summary = mysqli_fetch_assoc(mysqli_query($conn, "
             <div class="card">
                 <div class="card-header">
                     <span><i class="bi bi-bar-chart"></i> Staff Performance</span>
-                    <span class="small text-muted"><?php echo $date_from; ?> → <?php echo $date_to; ?></span>
+                    <span class="small text-muted"><?php echo e($date_from); ?> → <?php echo e($date_to); ?></span>
                 </div>
                 <div class="card-body">
                     <?php if(mysqli_num_rows($staff_performance) > 0): ?>
@@ -427,8 +447,8 @@ $staff_summary = mysqli_fetch_assoc(mysqli_query($conn, "
                                     <?php endif; ?>
                                 </div>
                                 <div class="agent-numbers">
-                                    <span class="text-muted">👥 <?php echo $a['visitors']; ?> visits</span>
-                                    <span class="text-muted ms-2">💰 <?php echo $a['sales']; ?> sales</span>
+                                    <span class="text-muted">👥 <?php echo e($a['visitors']); ?> visits</span>
+                                    <span class="text-muted ms-2">💰 <?php echo e($a['sales']); ?> sales</span>
                                 </div>
                             </div>
                             <div class="agent-collected">
@@ -471,12 +491,12 @@ $staff_summary = mysqli_fetch_assoc(mysqli_query($conn, "
                                 <tr>
                                     <td>
                                         <?php echo htmlspecialchars(substr($p['visitor_name'], 0, 20)); ?>
-                                        <br><small class="text-muted"><?php echo $p['agent_name']; ?></small>
+                                        <br><small class="text-muted"><?php echo e($p['agent_name']); ?></small>
                                     </td>
                                     <td class="fw-bold">D <?php echo number_format($p['amount'], 2); ?></td>
                                     <td>
                                         <span class="badge <?php echo $p['payment_status'] == 'Pending' ? 'badge-warning' : 'badge-danger'; ?>">
-                                            <?php echo $p['payment_status']; ?>
+                                            <?php echo e($p['payment_status']); ?>
                                         </span>
                                     </td>
                                 </tr>
@@ -522,9 +542,9 @@ $staff_summary = mysqli_fetch_assoc(mysqli_query($conn, "
                                 <tr class="<?php echo $row_class; ?>">
                                     <td>
                                         <strong><?php echo htmlspecialchars(substr($item['product_name'], 0, 25)); ?></strong>
-                                        <br><small class="text-muted"><?php echo $item['sku']; ?></small>
+                                        <br><small class="text-muted"><?php echo e($item['sku']); ?></small>
                                     </td>
-                                    <td class="fw-bold"><?php echo $item['quantity']; ?></td>
+                                    <td class="fw-bold"><?php echo e($item['quantity']); ?></td>
                                     <td>
                                         <?php if($item['quantity'] == 0): ?>
                                             <span class="badge bg-danger">Out</span>
@@ -563,7 +583,7 @@ $staff_summary = mysqli_fetch_assoc(mysqli_query($conn, "
                                 <select class="form-select form-select-sm" name="product_id" required>
                                     <option value="">Select Product</option>
                                     <?php while($p = mysqli_fetch_assoc($products)): ?>
-                                    <option value="<?php echo $p['id']; ?>"><?php echo $p['name']; ?></option>
+                                    <option value="<?php echo e($p['id']); ?>"><?php echo e($p['name']); ?></option>
                                     <?php endwhile; ?>
                                 </select>
                             </div>
@@ -594,11 +614,11 @@ $staff_summary = mysqli_fetch_assoc(mysqli_query($conn, "
                     <div class="d-flex justify-content-between align-items-center mb-1 p-1 border rounded small">
                         <div>
                             <strong><?php echo htmlspecialchars(substr($item['product_name'], 0, 20)); ?></strong>
-                            <br><small class="text-muted">Stock: <?php echo $item['quantity']; ?></small>
+                            <br><small class="text-muted">Stock: <?php echo e($item['quantity']); ?></small>
                         </div>
                         <button class="btn btn-sm btn-outline-primary py-0 px-2" 
-                                onclick="quickRequest(<?php echo $item['product_id']; ?>, <?php echo $item['reorder_quantity']; ?>)">
-                            Reorder <?php echo $item['reorder_quantity']; ?>
+                                onclick="quickRequest(<?php echo e($item['product_id']); ?>, <?php echo e($item['reorder_quantity']); ?>)">
+                            Reorder <?php echo e($item['reorder_quantity']); ?>
                         </button>
                     </div>
                     <?php endwhile; ?>
@@ -612,11 +632,11 @@ $staff_summary = mysqli_fetch_assoc(mysqli_query($conn, "
                         <div class="request-item d-flex justify-content-between align-items-center">
                             <div>
                                 <strong><?php echo htmlspecialchars(substr($r['product_name'], 0, 20)); ?></strong>
-                                <br><small class="text-muted">Qty: <?php echo $r['quantity']; ?></small>
+                                <br><small class="text-muted">Qty: <?php echo e($r['quantity']); ?></small>
                             </div>
                             <div>
-                                <span class="badge badge-<?php echo $r['priority']; ?>"><?php echo ucfirst($r['priority']); ?></span>
-                                <span class="badge badge-<?php echo $r['status']; ?>"><?php echo ucfirst($r['status']); ?></span>
+                                <span class="badge badge-<?php echo e($r['priority']); ?>"><?php echo ucfirst($r['priority']); ?></span>
+                                <span class="badge badge-<?php echo e($r['status']); ?>"><?php echo ucfirst($r['status']); ?></span>
                             </div>
                         </div>
                         <?php endwhile; ?>
@@ -648,7 +668,7 @@ $staff_summary = mysqli_fetch_assoc(mysqli_query($conn, "
                     <a href="stock_requests.php" class="action-btn">
                         <i class="bi bi-box"></i> Request History
                     </a>
-                    <a href="export_report.php?type=outlet&from=<?php echo $date_from; ?>&to=<?php echo $date_to; ?>" class="action-btn">
+                    <a href="export_report.php?type=outlet&from=<?php echo e($date_from); ?>&to=<?php echo e($date_to); ?>" class="action-btn">
                         <i class="bi bi-download"></i> Export Report
                     </a>
                 </div>

@@ -2,8 +2,37 @@
 require_once '../config.php';
 requireRole('supervisor');
 
-$outlet_id = $_SESSION['outlet_id'];
-$outlet = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM outlets WHERE id = $outlet_id"));
+$outlet_id = (int)($_SESSION['outlet_id'] ?? 0);
+$outlet = null;
+if ($outlet_id > 0) {
+    $stmt = mysqli_prepare($conn, "SELECT * FROM outlets WHERE id = ? LIMIT 1");
+    if ($stmt) {
+        mysqli_stmt_bind_param($stmt, 'i', $outlet_id);
+        mysqli_stmt_execute($stmt);
+        $outlet = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+    }
+}
+if (!$outlet) {
+    // A supervisor without an outlet has no payments to manage.
+    $outlet = ['name' => 'No outlet assigned'];
+}
+
+// Handle marking as paid. Only sales belonging to this supervisor's outlet can be changed.
+if (sisPostAction('mark_paid')) {
+    $sale_id = (int)($_POST['sale_id'] ?? 0);
+    $stmt = mysqli_prepare($conn, "UPDATE sales SET payment_status = 'Paid', payment_date = NOW() WHERE id = ? AND outlet_id = ? AND payment_status IN ('Pending', 'Unpaid')");
+    if ($stmt && $outlet_id > 0) {
+        mysqli_stmt_bind_param($stmt, 'ii', $sale_id, $outlet_id);
+        mysqli_stmt_execute($stmt);
+        if (mysqli_stmt_affected_rows($stmt) > 0) {
+            logAction($conn, 'PAYMENT_COLLECTED', $sale_id);
+            header("Location: pending_payments.php?success=1");
+            exit();
+        }
+    }
+    header("Location: pending_payments.php");
+    exit();
+}
 
 // Get all pending and unpaid payments
 $payments_query = "
@@ -13,30 +42,18 @@ $payments_query = "
     LEFT JOIN visitors v ON s.visitor_id = v.id
     LEFT JOIN users u ON s.agent_id = u.id
     LEFT JOIN services sv ON v.service_id = sv.id
-    WHERE s.outlet_id = $outlet_id 
+    WHERE s.outlet_id = $outlet_id
     AND s.payment_status IN ('Pending', 'Unpaid')
     ORDER BY s.payment_date DESC";
 
 $payments_result = mysqli_query($conn, $payments_query);
-
-// Handle marking as paid
-if (isset($_POST['mark_paid'])) {
-    $sale_id = (int)$_POST['sale_id'];
-    $update = "UPDATE sales SET payment_status = 'Paid', payment_date = NOW() WHERE id = $sale_id";
-    if (mysqli_query($conn, $update)) {
-        logAction($conn, 'PAYMENT_COLLECTED', $sale_id);
-        $message = "Payment marked as collected!";
-        header("Location: pending_payments.php?success=1");
-        exit();
-    }
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pending Payments - <?php echo $outlet['name']; ?></title>
+    <title>Pending Payments - <?php echo e($outlet['name']); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 <link rel="stylesheet" href="<?php echo appAsset('assets/css/sis-page-components.css'); ?>">
@@ -48,7 +65,7 @@ if (isset($_POST['mark_paid'])) {
 
     <div class="page-header">
         <div class="container">
-            <h4><?php echo $outlet['name']; ?> - Pending & Unpaid Payments</h4>
+            <h4><?php echo e($outlet['name']); ?> - Pending & Unpaid Payments</h4>
         </div>
     </div>
 
@@ -99,19 +116,19 @@ if (isset($_POST['mark_paid'])) {
                                 <td><?php echo date('d/m/Y', strtotime($payment['payment_date'])); ?></td>
                                 <td>
                                     <?php echo htmlspecialchars($payment['visitor_name']); ?>
-                                    <small class="d-block text-muted"><?php echo $payment['contact']; ?></small>
+                                    <small class="d-block text-muted"><?php echo e($payment['contact']); ?></small>
                                 </td>
                                 <td>
-                                    <?php echo $payment['service_name']; ?>
+                                    <?php echo e($payment['service_name']); ?>
                                     <?php if($payment['is_quantity_based'] && $payment['quantity'] > 1): ?>
-                                        <small class="d-block">x<?php echo $payment['quantity']; ?> units</small>
+                                        <small class="d-block">x<?php echo e($payment['quantity']); ?> units</small>
                                     <?php endif; ?>
                                 </td>
-                                <td><?php echo $payment['agent_name']; ?></td>
+                                <td><?php echo e($payment['agent_name']); ?></td>
                                 <td><strong>D <?php echo number_format($payment['amount'], 2); ?></strong></td>
                                 <td>
                                     <span class="badge-<?php echo strtolower($payment['payment_status']); ?>">
-                                        <?php echo $payment['payment_status']; ?>
+                                        <?php echo e($payment['payment_status']); ?>
                                     </span>
                                 </td>
                                 <td>
@@ -123,7 +140,7 @@ if (isset($_POST['mark_paid'])) {
                                 </td>
                                 <td>
                                     <form class="sis-u-5f8f4af2" method="POST">
-                                        <input type="hidden" name="sale_id" value="<?php echo $payment['id']; ?>">
+                                        <input type="hidden" name="sale_id" value="<?php echo e($payment['id']); ?>">
                                         <button type="submit" name="mark_paid" class="btn btn-sm btn-success" 
                                                 onclick="return confirm('Mark this payment as collected?')">
                                             <i class="bi bi-check-circle"></i> Mark Paid

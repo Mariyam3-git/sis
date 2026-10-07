@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $message = 'Support form field added successfully.';
                         logAction($conn, 'ADD_SUPPORT_FORM_FIELD', mysqli_insert_id($conn));
                     } else {
-                        $message = 'Could not add field: ' . mysqli_error($conn);
+                        $message = sisDbErrorMessage($conn);
                         $message_type = 'danger';
                     }
                 }
@@ -64,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $message = 'Support form field updated successfully.';
                         logAction($conn, 'UPDATE_SUPPORT_FORM_FIELD', $id);
                     } else {
-                        $message = 'Could not update field: ' . mysqli_error($conn);
+                        $message = sisDbErrorMessage($conn);
                         $message_type = 'danger';
                     }
                 }
@@ -110,7 +110,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
     <h1 class="page-title"><i class="bi bi-ui-checks-grid text-danger"></i> Complaint / Support Form Builder</h1>
     <p class="text-muted">Admin controls the form fields here. Agent and Supervisor will see only active fields on their Complaint / Support page.</p>
-    <?php if($message): ?><div class="alert alert-<?php echo $message_type; ?>"><?php echo e($message); ?></div><?php endif; ?>
+    <?php if($message): ?><div class="alert alert-<?php echo e($message_type); ?>"><?php echo e($message); ?></div><?php endif; ?>
 
     <div class="card mb-4"><div class="card-body">
         <h5 class="mb-3">Add New Field</h5>

@@ -206,7 +206,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_request'])) {
     $product_id = (int)$_POST['product_id'];
     $quantity = (int)$_POST['quantity'];
     $priority = mysqli_real_escape_string($conn, (string)($_POST['priority'] ?? ''));
-    $required_by = !empty($_POST['required_by']) ? "'" . $_POST['required_by'] . "'" : 'NULL';
+    $required_by = sisCleanDate($_POST['required_by'] ?? '') !== '' ? "'" . sisCleanDate($_POST['required_by']) . "'" : 'NULL';
     $request_notes = mysqli_real_escape_string($conn, (string)($_POST['request_notes'] ?? ''));
     $ref_num = 'REQ-' . date('Ymd') . '-' . strtoupper(uniqid());
     
@@ -225,7 +225,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_request'])) {
             header("Location: stock_dashboard.php");
             exit();
         } else {
-            $message = "Error: " . mysqli_error($conn);
+            $message = sisDbErrorMessage($conn);
             $message_type = "danger";
         }
     }
@@ -264,8 +264,8 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
     <div class="container-fluid px-4">
         <?php if($message): ?>
-        <div class="alert alert-<?php echo $message_type; ?> alert-dismissible fade show">
-            <?php echo $message; ?>
+        <div class="alert alert-<?php echo e($message_type); ?> alert-dismissible fade show">
+            <?php echo e($message); ?>
             <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert"></button>
         </div>
         <?php endif; ?>
@@ -275,12 +275,12 @@ $current_page = basename($_SERVER['PHP_SELF']);
             <div class="stat-card sales">
                 <h6>Today's Sales</h6>
                 <h3>D <?php echo number_format($today_sales['collected'], 2); ?></h3>
-                <small><?php echo $today_sales['transaction_count']; ?> transactions</small>
+                <small><?php echo e($today_sales['transaction_count']); ?> transactions</small>
             </div>
             <div class="stat-card visitors">
                 <h6>Month to Date</h6>
                 <h3>D <?php echo number_format($month_sales['collected'], 2); ?></h3>
-                <small><?php echo $month_sales['transaction_count']; ?> transactions</small>
+                <small><?php echo e($month_sales['transaction_count']); ?> transactions</small>
             </div>
             <div class="stat-card target">
                 <h6>Products in Stock</h6>
@@ -357,15 +357,15 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                     <tr class="<?php echo $row_class; ?>">
                                         <td><strong><?php echo htmlspecialchars($item['name']); ?></strong></td>
                                         <td><?php echo htmlspecialchars($item['sku']); ?></td>
-                                        <td class="stock-in"><?php echo $item['stock_in']; ?></td>
-                                        <td class="stock-out"><?php echo $item['stock_out']; ?></td>
+                                        <td class="stock-in"><?php echo e($item['stock_in']); ?></td>
+                                        <td class="stock-out"><?php echo e($item['stock_out']); ?></td>
                                         <td class="stock-current"><?php echo $current; ?></td>
                                         <td>
-                                            <span class="badge badge-<?php echo $status_class; ?>"><?php echo $status_text; ?></span>
+                                            <span class="badge badge-<?php echo $status_class; ?>"><?php echo e($status_text); ?></span>
                                          </td>
                                         <td>
                                             <?php if($current <= $threshold): ?>
-                                            <button class="btn btn-sm btn-primary" onclick="quickRequest(<?php echo $item['id']; ?>, <?php echo $item['reorder_quantity'] ?? 50; ?>)">
+                                            <button class="btn btn-sm btn-primary" onclick="quickRequest(<?php echo e($item['id']); ?>, <?php echo e($item['reorder_quantity'] ?? 50); ?>)">
                                                 Request Stock
                                             </button>
                                             <?php else: ?>
@@ -398,7 +398,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                         mysqli_data_seek($products, 0);
                                         while($p = mysqli_fetch_assoc($products)): 
                                         ?>
-                                        <option value="<?php echo $p['id']; ?>"><?php echo htmlspecialchars($p['name']); ?> (<?php echo $p['sku']; ?>)</option>
+                                        <option value="<?php echo e($p['id']); ?>"><?php echo htmlspecialchars($p['name']); ?> (<?php echo e($p['sku']); ?>)</option>
                                         <?php endwhile; ?>
                                     </select>
                                 </div>
@@ -444,7 +444,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                 <?php while($req = mysqli_fetch_assoc($pending_requests)): ?>
                                 <tr>
                                     <td><?php echo htmlspecialchars($req['product_name']); ?></td>
-                                    <td><?php echo $req['quantity']; ?></td>
+                                    <td><?php echo e($req['quantity']); ?></td>
                                     <td>
                                         <span class="badge <?php echo $req['priority'] == 'critical' ? 'bg-danger' : ($req['priority'] == 'urgent' ? 'bg-warning' : 'bg-secondary'); ?>">
                                             <?php echo ucfirst($req['priority']); ?>
@@ -578,10 +578,10 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                         <tr>
                                             <td>
                                                 <strong><?php echo htmlspecialchars($agent['full_name']); ?></strong>
-                                                <br><small class="text-muted"><?php echo $agent['shift']; ?></small>
+                                                <br><small class="text-muted"><?php echo e($agent['shift']); ?></small>
                                              </td>
-                                            <td><?php echo $agent['visitors']; ?></td>
-                                            <td><?php echo $agent['sales_count']; ?></td>
+                                            <td><?php echo e($agent['visitors']); ?></td>
+                                            <td><?php echo e($agent['sales_count']); ?></td>
                                             <td class="fw-bold text-success">D <?php echo number_format($agent['collected'], 2); ?></td>
                                         </tr>
                                         <?php endwhile; ?>
@@ -619,7 +619,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                         <tr>
                                             <td><?php echo date('d/m', strtotime($req['request_date'])); ?></td>
                                             <td><?php echo htmlspecialchars($req['product_name']); ?></td>
-                                            <td><?php echo $req['quantity']; ?></td>
+                                            <td><?php echo e($req['quantity']); ?></td>
                                             <td>
                                                 <span class="badge <?php echo $req['priority'] == 'critical' ? 'bg-danger' : ($req['priority'] == 'urgent' ? 'bg-warning' : 'bg-secondary'); ?>">
                                                     <?php echo ucfirst($req['priority']); ?>

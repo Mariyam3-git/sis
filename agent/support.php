@@ -84,9 +84,9 @@ $valuesMap = supportGetTicketValuesMap($conn, array_column($tickets, 'id'));
 </div>
 
 <?php if($message): ?>
-    <div class="alert alert-<?php echo $message_type; ?> alert-dismissible fade show">
+    <div class="alert alert-<?php echo e($message_type); ?> alert-dismissible fade show">
         <i class="bi bi-<?php echo $message_type === 'success' ? 'check-circle-fill' : 'exclamation-triangle-fill'; ?> me-2"></i>
-        <?php echo $message; ?>
+        <?php echo e($message); ?>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 <?php endif; ?>

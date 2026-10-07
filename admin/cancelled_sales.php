@@ -361,7 +361,7 @@ sisRenderLayoutStart($is_super_admin ? 'super_admin' : 'admin', 'Cancelled Sales
                                 <div class="kpi-label">
                                     <?php echo htmlspecialchars($agent); ?>
                                     <span class="badge" style="background: <?php echo $is_supervisor ? '#fce7f3' : '#e0e7ff'; ?>; color: <?php echo $chip_color; ?>; margin-left: 6px; font-size: 10px;">
-                                        <?php echo $role_label; ?>
+                                        <?php echo e($role_label); ?>
                                     </span>
                                 </div>
                                 <div class="kpi-value" style="font-size: 1.4rem;"><?php echo number_format($stats['count']); ?> cancelled</div>

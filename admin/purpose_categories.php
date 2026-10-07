@@ -11,8 +11,8 @@ $message = '';
 $message_type = '';
 
 // Archive category (soft delete)
-if (isset($_GET['delete'])) {
-    $id = (int)$_GET['delete'];
+if (sisPostAction('delete')) {
+    $id = (int)$_POST['delete'];
     
     // Check if category has purposes
     $check = mysqli_query($conn, "SELECT COUNT(*) as count FROM purpose_of_visit WHERE category_id = $id AND is_active = 1");
@@ -32,8 +32,8 @@ if (isset($_GET['delete'])) {
 }
 
 // Restore category
-if (isset($_GET['restore'])) {
-    $id = (int)$_GET['restore'];
+if (sisPostAction('restore')) {
+    $id = (int)$_POST['restore'];
     $query = "UPDATE purpose_categories SET is_active = 1 WHERE id = $id";
     if (mysqli_query($conn, $query)) {
         logAction($conn, 'RESTORE_PURPOSE_CATEGORY', $id);
@@ -43,8 +43,8 @@ if (isset($_GET['restore'])) {
 }
 
 // Permanent delete
-if (isset($_GET['hard_delete'])) {
-    $id = (int)$_GET['hard_delete'];
+if (sisPostAction('hard_delete')) {
+    $id = (int)$_POST['hard_delete'];
     $check = mysqli_query($conn, "SELECT COUNT(*) as count FROM purpose_of_visit WHERE category_id = $id");
     $row = mysqli_fetch_assoc($check);
     
@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_category'])) {
         $message = 'Category saved successfully!';
         $message_type = 'success';
     } else {
-        $message = 'Error: ' . mysqli_error($conn);
+        $message = sisDbErrorMessage($conn);
         $message_type = 'danger';
     }
 }
@@ -212,9 +212,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
         
         <?php if($message): ?>
-        <div class="alert alert-<?php echo $message_type; ?> alert-dismissible fade show" role="alert">
+        <div class="alert alert-<?php echo e($message_type); ?> alert-dismissible fade show" role="alert">
             <i class="bi bi-<?php echo $message_type == 'success' ? 'check-circle' : 'exclamation-triangle'; ?>"></i>
-            <?php echo $message; ?>
+            <?php echo e($message); ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         <?php endif; ?>
@@ -248,7 +248,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     <form method="POST">
                         <input type="hidden" name="save_category" value="1">
                         <?php if($edit_category): ?>
-                        <input type="hidden" name="id" value="<?php echo $edit_category['id']; ?>">
+                        <input type="hidden" name="id" value="<?php echo e($edit_category['id']); ?>">
                         <?php endif; ?>
                         
                         <div class="mb-3">
@@ -282,7 +282,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                 <label class="form-label">Color</label>
                                 <div class="color-input-group">
                                     <input type="color" class="form-control" name="color" 
-                                           value="<?php echo $edit_category['color'] ?? '#6c757d'; ?>" 
+                                           value="<?php echo e($edit_category['color'] ?? '#6c757d'); ?>" 
                                           >
                                     <span class="color-preview sis-dynamic-color" data-color="<?php echo e($edit_category['color'] ?? '#6c757d'); ?>"></span>
                                 </div>
@@ -292,7 +292,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         <div class="mb-3">
                             <label class="form-label">Sort Order</label>
                             <input type="number" class="form-control" name="sort_order" 
-                                   value="<?php echo $edit_category['sort_order'] ?? '0'; ?>">
+                                   value="<?php echo e($edit_category['sort_order'] ?? '0'); ?>">
                             <small class="text-muted">Lower numbers appear first in dropdowns</small>
                         </div>
                         
@@ -334,12 +334,12 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                     <?php foreach ($active_categories as $category): ?>
                                     <tr>
                                         <td>
-                                            <span class="badge bg-secondary"><?php echo $category['sort_order']; ?></span>
+                                            <span class="badge bg-secondary"><?php echo e($category['sort_order']); ?></span>
                                          </td>
                                         <td>
                                             <div class="d-flex align-items-center gap-2">
                                                 <span class="category-chip sis-dynamic-color" data-color="<?php echo e($category['color']); ?>">
-                                                    <i class="bi <?php echo $category['icon'] ?? 'bi-folder'; ?>"></i>
+                                                    <i class="bi <?php echo e($category['icon'] ?? 'bi-folder'); ?>"></i>
                                                     <span><?php echo htmlspecialchars($category['name']); ?></span>
                                                 </span>
                                                 <?php if($category['description']): ?>
@@ -348,20 +348,20 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                             </div>
                                          </td>
                                         <td>
-                                            <span class="badge badge-info"><?php echo $category['purpose_count']; ?> purposes</span>
+                                            <span class="badge badge-info"><?php echo e($category['purpose_count']); ?> purposes</span>
                                          </td>
                                         <td>
                                             <div class="d-flex gap-1">
-                                                <a href="?edit=<?php echo $category['id']; ?>" class="action-btn" title="Edit">
+                                                <a href="?edit=<?php echo e($category['id']); ?>" class="action-btn" title="Edit">
                                                     <i class="bi bi-pencil"></i>
                                                 </a>
                                                 <?php if($category['purpose_count'] == 0): ?>
-                                                <a href="?delete=<?php echo $category['id']; ?>" class="action-btn text-warning" 
+                                                <a href="?delete=<?php echo e($category['id']); ?>" class="action-btn text-warning" 
                                                    onclick="return confirm('Archive this category?')" title="Archive">
                                                     <i class="bi bi-archive"></i>
                                                 </a>
                                                 <?php else: ?>
-                                                <span class="action-btn disabled text-muted" title="Cannot archive - has <?php echo $category['purpose_count']; ?> purposes">
+                                                <span class="action-btn disabled text-muted" title="Cannot archive - has <?php echo e($category['purpose_count']); ?> purposes">
                                                     <i class="bi bi-archive"></i>
                                                 </span>
                                                 <?php endif; ?>
@@ -399,12 +399,12 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                     <?php foreach ($inactive_categories as $category): ?>
                                     <tr>
                                         <td>
-                                            <span class="badge bg-secondary"><?php echo $category['sort_order']; ?></span>
+                                            <span class="badge bg-secondary"><?php echo e($category['sort_order']); ?></span>
                                          </td>
                                         <td>
                                             <div class="d-flex align-items-center gap-2">
                                                 <span class="category-chip sis-dynamic-color" data-color="<?php echo e($category['color']); ?>">
-                                                    <i class="bi <?php echo $category['icon'] ?? 'bi-folder'; ?>"></i>
+                                                    <i class="bi <?php echo e($category['icon'] ?? 'bi-folder'); ?>"></i>
                                                     <span><?php echo htmlspecialchars($category['name']); ?></span>
                                                 </span>
                                                 <span class="badge badge-inactive ms-2">Archived</span>
@@ -414,16 +414,16 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                             </div>
                                          </td>
                                         <td>
-                                            <span class="badge badge-info"><?php echo $category['purpose_count']; ?> purposes</span>
+                                            <span class="badge badge-info"><?php echo e($category['purpose_count']); ?> purposes</span>
                                          </td>
                                         <td>
                                             <div class="d-flex gap-1">
-                                                <a href="?restore=<?php echo $category['id']; ?>" class="action-btn text-success" 
+                                                <a href="?restore=<?php echo e($category['id']); ?>" class="action-btn text-success" 
                                                    onclick="return confirm('Restore this category?')" title="Restore">
                                                     <i class="bi bi-arrow-counterclockwise"></i>
                                                 </a>
                                                 <?php if($category['purpose_count'] == 0): ?>
-                                                <a href="?hard_delete=<?php echo $category['id']; ?>" class="action-btn text-danger" 
+                                                <a href="?hard_delete=<?php echo e($category['id']); ?>" class="action-btn text-danger" 
                                                    onclick="return confirm('⚠️ PERMANENTLY DELETE this category? This cannot be undone! ⚠️')" title="Permanently Delete">
                                                     <i class="bi bi-trash"></i>
                                                 </a>

@@ -3,8 +3,8 @@ require_once '../config.php';
 requireRole('supervisor');
 
 $outlet_id = $_SESSION['outlet_id'];
-$date_from = isset($_GET['date_from']) ? $_GET['date_from'] : date('Y-m-d', strtotime('-30 days'));
-$date_to = isset($_GET['date_to']) ? $_GET['date_to'] : date('Y-m-d');
+$date_from = sisCleanDate($_GET['date_from'] ?? '', date('Y-m-d', strtotime('-30 days')));
+$date_to = sisCleanDate($_GET['date_to'] ?? '', date('Y-m-d'));
 
 $outlet = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM outlets WHERE id = $outlet_id"));
 
@@ -50,7 +50,7 @@ $category_result = mysqli_query($conn, $category_query);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Service Analysis - <?php echo $outlet['name']; ?></title>
+    <title>Service Analysis - <?php echo e($outlet['name']); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -63,8 +63,8 @@ $category_result = mysqli_query($conn, $category_query);
 
     <div class="page-header">
         <div class="container">
-            <h4><?php echo $outlet['name']; ?> - Service Analysis</h4>
-            <small><?php echo $date_from; ?> to <?php echo $date_to; ?></small>
+            <h4><?php echo e($outlet['name']); ?> - Service Analysis</h4>
+            <small><?php echo e($date_from); ?> to <?php echo e($date_to); ?></small>
         </div>
     </div>
 
@@ -75,11 +75,11 @@ $category_result = mysqli_query($conn, $category_query);
                 <form method="GET" class="row g-3">
                     <div class="col-md-4">
                         <label>From Date</label>
-                        <input type="date" class="form-control" name="date_from" value="<?php echo $date_from; ?>">
+                        <input type="date" class="form-control" name="date_from" value="<?php echo e($date_from); ?>">
                     </div>
                     <div class="col-md-4">
                         <label>To Date</label>
-                        <input type="date" class="form-control" name="date_to" value="<?php echo $date_to; ?>">
+                        <input type="date" class="form-control" name="date_to" value="<?php echo e($date_to); ?>">
                     </div>
                     <div class="col-md-4">
                         <label>&nbsp;</label>
@@ -98,9 +98,9 @@ $category_result = mysqli_query($conn, $category_query);
             <div class="col-md-4 mb-3">
                 <div class="card">
                     <div class="card-body">
-                        <h6><?php echo $cat['category']; ?></h6>
+                        <h6><?php echo e($cat['category']); ?></h6>
                         <h3 class="text-danger">D <?php echo number_format($cat['revenue'] ?? 0, 2); ?></h3>
-                        <small><?php echo $cat['visits']; ?> visits • <?php echo $cat['sales']; ?> sales</small>
+                        <small><?php echo e($cat['visits']); ?> visits • <?php echo e($cat['sales']); ?> sales</small>
                     </div>
                 </div>
             </div>
@@ -144,11 +144,11 @@ $category_result = mysqli_query($conn, $category_query);
                                 }
                             ?>
                             <tr>
-                                <td><strong><?php echo $service['name']; ?></strong></td>
-                                <td><span class="badge badge-<?php echo $type_class; ?>"><?php echo $type_label; ?></span></td>
+                                <td><strong><?php echo e($service['name']); ?></strong></td>
+                                <td><span class="badge badge-<?php echo $type_class; ?>"><?php echo e($type_label); ?></span></td>
                                 <td>D <?php echo number_format($service['price'], 2); ?></td>
-                                <td><?php echo $service['visit_count']; ?></td>
-                                <td><?php echo $service['sale_count']; ?></td>
+                                <td><?php echo e($service['visit_count']); ?></td>
+                                <td><?php echo e($service['sale_count']); ?></td>
                                 <td><?php echo $service['total_quantity'] ?: '-'; ?></td>
                                 <td class="text-success">D <?php echo number_format($service['revenue'] ?? 0, 2); ?></td>
                                 <td class="text-warning">D <?php echo number_format($service['pending'] ?? 0, 2); ?></td>

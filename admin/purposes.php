@@ -11,8 +11,8 @@ $message = '';
 $message_type = '';
 
 // Archive purpose (soft delete)
-if (isset($_GET['delete'])) {
-    $id = (int)$_GET['delete'];
+if (sisPostAction('delete')) {
+    $id = (int)$_POST['delete'];
     $query = "UPDATE purpose_of_visit SET is_active = 0 WHERE id = $id";
     if (mysqli_query($conn, $query)) {
         logAction($conn, 'DELETE_PURPOSE', $id);
@@ -22,8 +22,8 @@ if (isset($_GET['delete'])) {
 }
 
 // Restore purpose
-if (isset($_GET['restore'])) {
-    $id = (int)$_GET['restore'];
+if (sisPostAction('restore')) {
+    $id = (int)$_POST['restore'];
     $query = "UPDATE purpose_of_visit SET is_active = 1 WHERE id = $id";
     if (mysqli_query($conn, $query)) {
         logAction($conn, 'RESTORE_PURPOSE', $id);
@@ -33,8 +33,8 @@ if (isset($_GET['restore'])) {
 }
 
 // Permanent delete
-if (isset($_GET['hard_delete'])) {
-    $id = (int)$_GET['hard_delete'];
+if (sisPostAction('hard_delete')) {
+    $id = (int)$_POST['hard_delete'];
     $query = "DELETE FROM purpose_of_visit WHERE id = $id";
     if (mysqli_query($conn, $query)) {
         logAction($conn, 'PERMANENT_DELETE_PURPOSE', $id);
@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_purpose'])) {
         $message = 'Purpose saved successfully!';
         $message_type = 'success';
     } else {
-        $message = 'Error: ' . mysqli_error($conn);
+        $message = sisDbErrorMessage($conn);
         $message_type = 'danger';
     }
 }
@@ -208,9 +208,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
         
         <?php if($message): ?>
-        <div class="alert alert-<?php echo $message_type; ?> alert-dismissible fade show" role="alert">
+        <div class="alert alert-<?php echo e($message_type); ?> alert-dismissible fade show" role="alert">
             <i class="bi bi-<?php echo $message_type == 'success' ? 'check-circle' : 'exclamation-triangle'; ?>"></i>
-            <?php echo $message; ?>
+            <?php echo e($message); ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         <?php endif; ?>
@@ -228,7 +228,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         mysqli_data_seek($categories_result, 0);
                         while($category = mysqli_fetch_assoc($categories_result)): 
                         ?>
-                        <option value="<?php echo $category['id']; ?>" <?php echo $filter_category == $category['id'] ? 'selected' : ''; ?>>
+                        <option value="<?php echo e($category['id']); ?>" <?php echo $filter_category == $category['id'] ? 'selected' : ''; ?>>
                             <?php echo htmlspecialchars($category['name']); ?>
                         </option>
                         <?php endwhile; ?>
@@ -257,7 +257,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     <form method="POST">
                         <input type="hidden" name="save_purpose" value="1">
                         <?php if($edit_purpose): ?>
-                        <input type="hidden" name="id" value="<?php echo $edit_purpose['id']; ?>">
+                        <input type="hidden" name="id" value="<?php echo e($edit_purpose['id']); ?>">
                         <?php endif; ?>
                         
                         <div class="mb-3">
@@ -275,7 +275,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                 mysqli_data_seek($categories_result, 0);
                                 while($category = mysqli_fetch_assoc($categories_result)): 
                                 ?>
-                                <option value="<?php echo $category['id']; ?>" 
+                                <option value="<?php echo e($category['id']); ?>" 
                                         <?php echo ($edit_purpose['category_id'] ?? '') == $category['id'] ? 'selected' : ''; ?>>
                                     <?php echo htmlspecialchars($category['name']); ?>
                                 </option>
@@ -300,7 +300,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                             <div class="col-6 mb-3">
                                 <label class="form-label">Color</label>
                                 <input type="color" class="form-control color-input" name="color" 
-                                       value="<?php echo $edit_purpose['color'] ?? '#6c757d'; ?>">
+                                       value="<?php echo e($edit_purpose['color'] ?? '#6c757d'); ?>">
                             </div>
                         </div>
                         
@@ -355,7 +355,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                                     <td>
                                                         <div class="d-flex align-items-center">
                                                             <span class="purpose-icon sis-dynamic-color" data-color="<?php echo e($purpose['color'] ?? '#666'); ?>">
-                                                                <i class="bi <?php echo $purpose['icon'] ?? 'bi-tag'; ?>"></i>
+                                                                <i class="bi <?php echo e($purpose['icon'] ?? 'bi-tag'); ?>"></i>
                                                             </span>
                                                             <div>
                                                                 <strong><?php echo htmlspecialchars($purpose['name']); ?></strong>
@@ -365,15 +365,15 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                                     </td>
                                                     <td>
                                                         <span class="badge sis-dynamic-color" data-color="<?php echo e($purpose['color'] ?? '#666'); ?>">
-                                                            <i class="bi <?php echo $purpose['icon'] ?? 'bi-tag'; ?>"></i> <?php echo str_replace('bi-', '', $purpose['icon'] ?? 'tag'); ?>
+                                                            <i class="bi <?php echo e($purpose['icon'] ?? 'bi-tag'); ?>"></i> <?php echo str_replace('bi-', '', $purpose['icon'] ?? 'tag'); ?>
                                                         </span>
                                                     </td>
                                                     <td>
                                                         <div class="d-flex gap-1">
-                                                            <a href="?edit=<?php echo $purpose['id']; ?>" class="action-btn" title="Edit">
+                                                            <a href="?edit=<?php echo e($purpose['id']); ?>" class="action-btn" title="Edit">
                                                                 <i class="bi bi-pencil"></i>
                                                             </a>
-                                                            <a href="?delete=<?php echo $purpose['id']; ?>" class="action-btn text-warning" 
+                                                            <a href="?delete=<?php echo e($purpose['id']); ?>" class="action-btn text-warning" 
                                                                onclick="return confirm('Archive this purpose?')" title="Archive">
                                                                 <i class="bi bi-archive"></i>
                                                             </a>
@@ -424,7 +424,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                                 <td>
                                                     <div class="d-flex align-items-center">
                                                         <span class="purpose-icon sis-dynamic-color" data-color="<?php echo e($purpose['color'] ?? '#666'); ?>">
-                                                            <i class="bi <?php echo $purpose['icon'] ?? 'bi-tag'; ?>"></i>
+                                                            <i class="bi <?php echo e($purpose['icon'] ?? 'bi-tag'); ?>"></i>
                                                         </span>
                                                         <strong><?php echo htmlspecialchars($purpose['name']); ?></strong>
                                                     </div>
@@ -440,11 +440,11 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                                 </td>
                                                 <td>
                                                     <div class="d-flex gap-1">
-                                                        <a href="?restore=<?php echo $purpose['id']; ?>" class="action-btn text-success" 
+                                                        <a href="?restore=<?php echo e($purpose['id']); ?>" class="action-btn text-success" 
                                                            onclick="return confirm('Restore this purpose?')" title="Restore">
                                                             <i class="bi bi-arrow-counterclockwise"></i>
                                                         </a>
-                                                        <a href="?hard_delete=<?php echo $purpose['id']; ?>" class="action-btn text-danger" 
+                                                        <a href="?hard_delete=<?php echo e($purpose['id']); ?>" class="action-btn text-danger" 
                                                            onclick="return confirm('⚠️ PERMANENTLY DELETE this purpose? This cannot be undone! ⚠️')" title="Permanently Delete">
                                                             <i class="bi bi-trash"></i>
                                                         </a>

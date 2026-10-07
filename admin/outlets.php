@@ -21,22 +21,22 @@ function sisOutletPostedIds($key = 'outlet_ids') {
 }
 
 // Delete outlet (soft delete - set inactive)
-if (isset($_GET['delete'])) {
-    $id = (int)$_GET['delete'];
+if (sisPostAction('delete')) {
+    $id = (int)$_POST['delete'];
     $query = "UPDATE outlets SET is_active = 0 WHERE id = $id";
     if (mysqli_query($conn, $query)) {
         logAction($conn, 'DELETE_OUTLET', $id);
         $message = 'Outlet deactivated successfully!';
         $message_type = 'success';
     } else {
-        $message = 'Error: ' . mysqli_error($conn);
+        $message = sisDbErrorMessage($conn);
         $message_type = 'danger';
     }
 }
 
 // Permanent delete (hard delete) - NEW
-if (isset($_GET['hard_delete'])) {
-    $id = (int)$_GET['hard_delete'];
+if (sisPostAction('hard_delete')) {
+    $id = (int)$_POST['hard_delete'];
     
     // Check if outlet has any agents assigned
     $check_agents = mysqli_query($conn, "SELECT COUNT(*) as count FROM users WHERE outlet_id = $id AND role = 'agent'");
@@ -52,7 +52,7 @@ if (isset($_GET['hard_delete'])) {
             $message = 'Outlet permanently deleted!';
             $message_type = 'success';
         } else {
-            $message = 'Error: ' . mysqli_error($conn);
+            $message = sisDbErrorMessage($conn);
             $message_type = 'danger';
         }
     }
@@ -76,7 +76,7 @@ if (isset($_POST['bulk_permanent_delete']) && !empty(sisOutletPostedIds('outlet_
             $message = count($ids) . ' outlet(s) permanently deleted!';
             $message_type = 'success';
         } else {
-            $message = 'Error: ' . mysqli_error($conn);
+            $message = sisDbErrorMessage($conn);
             $message_type = 'danger';
         }
     }
@@ -92,7 +92,7 @@ if (isset($_POST['bulk_deactivate']) && !empty(sisOutletPostedIds('outlet_ids'))
         $message = count($ids) . ' outlet(s) deactivated!';
         $message_type = 'success';
     } else {
-        $message = 'Error: ' . mysqli_error($conn);
+        $message = sisDbErrorMessage($conn);
         $message_type = 'danger';
     }
 }
@@ -107,14 +107,14 @@ if (isset($_POST['bulk_restore']) && !empty(sisOutletPostedIds('outlet_ids'))) {
         $message = count($ids) . ' outlet(s) restored!';
         $message_type = 'success';
     } else {
-        $message = 'Error: ' . mysqli_error($conn);
+        $message = sisDbErrorMessage($conn);
         $message_type = 'danger';
     }
 }
 
 // Restore outlet
-if (isset($_GET['restore'])) {
-    $id = (int)$_GET['restore'];
+if (sisPostAction('restore')) {
+    $id = (int)$_POST['restore'];
     $query = "UPDATE outlets SET is_active = 1 WHERE id = $id";
     if (mysqli_query($conn, $query)) {
         logAction($conn, 'RESTORE_OUTLET', $id);
@@ -124,7 +124,7 @@ if (isset($_GET['restore'])) {
 }
 
 // Add/Edit outlet
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['bulk_deactivate']) && !isset($_POST['bulk_restore']) && !isset($_POST['bulk_permanent_delete'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !sisIsRowActionPost() && !isset($_POST['bulk_deactivate']) && !isset($_POST['bulk_restore']) && !isset($_POST['bulk_permanent_delete'])) {
     $name = mysqli_real_escape_string($conn, (string)($_POST['name'] ?? ''));
     $location = mysqli_real_escape_string($conn, (string)($_POST['location'] ?? ''));
     $region = mysqli_real_escape_string($conn, (string)($_POST['region'] ?? ''));
@@ -138,13 +138,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['bulk_deactivate']) &
         $action = 'ADD_OUTLET';
     }
     
-    if (mysqli_query($conn, $query)) {
+    if (trim((string)($_POST['name'] ?? '')) === '') {
+        $message = 'Outlet name is required.';
+        $message_type = 'danger';
+    } elseif (mysqli_query($conn, $query)) {
         $record_id = isset($id) ? $id : mysqli_insert_id($conn);
         logAction($conn, $action, $record_id);
         $message = 'Outlet saved successfully!';
         $message_type = 'success';
     } else {
-        $message = 'Error: ' . mysqli_error($conn);
+        $message = sisDbErrorMessage($conn);
         $message_type = 'danger';
     }
 }
@@ -248,9 +251,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
         
         <?php if($message): ?>
-        <div class="alert alert-<?php echo $message_type; ?> alert-dismissible fade show">
+        <div class="alert alert-<?php echo e($message_type); ?> alert-dismissible fade show">
             <i class="bi bi-<?php echo $message_type == 'success' ? 'check-circle' : 'exclamation-triangle'; ?>"></i>
-            <?php echo $message; ?>
+            <?php echo e($message); ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         <?php endif; ?>
@@ -316,7 +319,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         <form method="POST" id="outletForm">
                         <?php echo csrfField(); ?>
                         <?php if($edit_outlet): ?>
-                        <input type="hidden" name="id" value="<?php echo $edit_outlet['id']; ?>">
+                        <input type="hidden" name="id" value="<?php echo e($edit_outlet['id']); ?>">
                         <?php endif; ?>
                         
                         <div class="mb-3">
@@ -366,8 +369,8 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         <?php if(mysqli_num_rows($region_stats) > 0): ?>
                             <?php while($region = mysqli_fetch_assoc($region_stats)): ?>
                             <div class="region-stat">
-                                <span class="name"><?php echo $region['region']; ?></span>
-                                <span class="count"><?php echo $region['count']; ?> outlet(s)</span>
+                                <span class="name"><?php echo e($region['region']); ?></span>
+                                <span class="count"><?php echo e($region['count']); ?> outlet(s)</span>
                             </div>
                             <?php endwhile; ?>
                         <?php else: ?>
@@ -406,7 +409,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                     <?php while($outlet = mysqli_fetch_assoc($outlets_result)): ?>
                                     <tr>
                                         <td class="checkbox-col">
-                                            <input type="checkbox" class="outlet-checkbox" value="<?php echo $outlet['id']; ?>" onclick="updateSelectedCount()">
+                                            <input type="checkbox" class="outlet-checkbox" value="<?php echo e($outlet['id']); ?>" onclick="updateSelectedCount()">
                                         </td>
                                         <td>
                                             <div class="d-flex align-items-center gap-2">
@@ -423,7 +426,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                         </td>
                                         <td>
                                             <span class="badge badge-region">
-                                                <?php echo $outlet['region'] ?? 'N/A'; ?>
+                                                <?php echo e($outlet['region'] ?? 'N/A'); ?>
                                             </span>
                                         </td>
                                         <td>
@@ -440,21 +443,21 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                         <td>
                                             <div class="d-flex gap-1">
                                                 
-                                                <a href="?edit=<?php echo $outlet['id']; ?>&<?php echo http_build_query(array_filter(['search' => $search, 'region' => $filter_region, 'status' => $filter_status])); ?>" 
+                                                <a href="?edit=<?php echo e($outlet['id']); ?>&<?php echo http_build_query(array_filter(['search' => $search, 'region' => $filter_region, 'status' => $filter_status])); ?>" 
                                                    class="action-btn" title="Edit">
                                                     <i class="bi bi-pencil"></i>
                                                 </a>
                                                 
                                                 
                                                 <?php if($outlet['is_active']): ?>
-                                                <a href="?delete=<?php echo $outlet['id']; ?>&<?php echo http_build_query(array_filter(['search' => $search, 'region' => $filter_region, 'status' => $filter_status])); ?>" 
+                                                <a href="?delete=<?php echo e($outlet['id']); ?>&<?php echo http_build_query(array_filter(['search' => $search, 'region' => $filter_region, 'status' => $filter_status])); ?>" 
                                                    class="action-btn text-warning" 
                                                    onclick="return confirm('Deactivate this outlet? It can be restored later.')" 
                                                    title="Deactivate">
                                                     <i class="bi bi-building-x"></i>
                                                 </a>
                                                 <?php else: ?>
-                                                <a href="?restore=<?php echo $outlet['id']; ?>&<?php echo http_build_query(array_filter(['search' => $search, 'region' => $filter_region, 'status' => $filter_status])); ?>" 
+                                                <a href="?restore=<?php echo e($outlet['id']); ?>&<?php echo http_build_query(array_filter(['search' => $search, 'region' => $filter_region, 'status' => $filter_status])); ?>" 
                                                    class="action-btn text-success" 
                                                    onclick="return confirm('Restore this outlet?')" 
                                                    title="Restore">
@@ -463,7 +466,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                                 <?php endif; ?>
                                                 
                                                 
-                                                <a href="?hard_delete=<?php echo $outlet['id']; ?>&<?php echo http_build_query(array_filter(['search' => $search, 'region' => $filter_region, 'status' => $filter_status])); ?>" 
+                                                <a href="?hard_delete=<?php echo e($outlet['id']); ?>&<?php echo http_build_query(array_filter(['search' => $search, 'region' => $filter_region, 'status' => $filter_status])); ?>" 
                                                    class="action-btn text-danger" 
                                                    onclick="return confirm('⚠️ PERMANENTLY DELETE this outlet? This cannot be undone! ⚠️')" 
                                                    title="Permanently Delete">

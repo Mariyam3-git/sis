@@ -89,7 +89,7 @@ if (isset($_GET['export'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Staff Performance - <?php echo $outlet['name']; ?></title>
+    <title>Staff Performance - <?php echo e($outlet['name']); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 <link rel="stylesheet" href="<?php echo appAsset('assets/css/sis-page-components.css'); ?>">
@@ -101,8 +101,8 @@ if (isset($_GET['export'])) {
 
     <div class="page-header">
         <div class="container">
-            <h4><?php echo $outlet['name']; ?> - Staff Performance (Agents & Supervisors)</h4>
-            <small><?php echo $date_from; ?> to <?php echo $date_to; ?></small>
+            <h4><?php echo e($outlet['name']); ?> - Staff Performance (Agents & Supervisors)</h4>
+            <small><?php echo e($date_from); ?> to <?php echo e($date_to); ?></small>
         </div>
     </div>
 
@@ -113,17 +113,17 @@ if (isset($_GET['export'])) {
                 <form method="GET" class="row g-3">
                     <div class="col-md-4">
                         <label>From Date</label>
-                        <input type="date" class="form-control" name="date_from" value="<?php echo $date_from; ?>">
+                        <input type="date" class="form-control" name="date_from" value="<?php echo e($date_from); ?>">
                     </div>
                     <div class="col-md-4">
                         <label>To Date</label>
-                        <input type="date" class="form-control" name="date_to" value="<?php echo $date_to; ?>">
+                        <input type="date" class="form-control" name="date_to" value="<?php echo e($date_to); ?>">
                     </div>
                     <div class="col-md-4">
                         <label>&nbsp;</label>
                         <div>
                             <button type="submit" class="btn btn-primary">Apply Filter</button>
-                            <a href="?export=1&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>" class="btn btn-success">
+                            <a href="?export=1&date_from=<?php echo e($date_from); ?>&date_to=<?php echo e($date_to); ?>" class="btn btn-success">
                                 <i class="bi bi-download"></i> Export
                             </a>
                             <a href="dashboard.php" class="btn btn-outline-secondary">Back</a>
@@ -161,16 +161,16 @@ if (isset($_GET['export'])) {
                                 $role_badge = $agent['role'] == 'agent' ? 'badge-agent' : 'badge-supervisor';
                             ?>
                             <tr>
-                                <td><strong><?php echo $agent['full_name']; ?></strong></td>
+                                <td><strong><?php echo e($agent['full_name']); ?></strong></td>
                                 <td><span class="badge <?php echo $role_badge; ?>"><?php echo ucfirst($agent['role']); ?></span></td>
                                 <td><span class="badge bg-info"><?php echo $shift_display; ?></span></td>
-                                <td><?php echo $agent['visitor_count']; ?></td>
-                                <td><?php echo $agent['sales_count']; ?></td>
+                                <td><?php echo e($agent['visitor_count']); ?></td>
+                                <td><?php echo e($agent['sales_count']); ?></td>
                                 <td class="text-success">D <?php echo number_format($agent['collected'] ?? 0, 2); ?></td>
                                 <td class="text-warning">D <?php echo number_format($agent['pending'] ?? 0, 2); ?></td>
                                 <td class="text-danger">D <?php echo number_format($agent['unpaid'] ?? 0, 2); ?></td>
                                 <td>D <?php echo number_format($agent['avg_ticket_size'] ?? 0, 2); ?></td>
-                                <td><?php echo $agent['active_days']; ?></td>
+                                <td><?php echo e($agent['active_days']); ?></td>
                                 <td>
                                     <div class="d-flex align-items-center">
                                         <span class="me-2"><?php echo $completion_rate; ?>%</span>
