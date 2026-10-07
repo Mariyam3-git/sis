@@ -424,14 +424,18 @@ if ($can_record && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_vi
         exit();
     } else {
         mysqli_rollback($conn);
-        setFlashMessage(sisDbErrorMessage($conn), 'danger');
+        setFlashMessage('Error: ' . mysqli_error($conn), 'danger');
         header("Location: " . $_SERVER['PHP_SELF']);
         exit();
     }
 }
 
-// Edit customer/sale record
-if ($can_record && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_sale'])) {
+// ============================================
+// EDIT CUSTOMER/SALE — DISABLED FOR AGENTS
+// Agents are not allowed to edit sales anymore.
+// The block below is kept for reference only and will never run.
+// ============================================
+if (false && $can_record && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_sale'])) {
     $sale_id    = (int)($_POST['sale_id'] ?? 0);
     $visitor_id = (int)($_POST['visitor_id'] ?? 0);
     $amount     = normalizeMoney($_POST['amount'] ?? 0);
@@ -443,7 +447,6 @@ if ($can_record && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_s
     $visitor_status = $_POST['visitor_status'] ?? 'Completed';
     if (!in_array($visitor_status, ['Waiting','In Progress','Completed','Cancelled'], true)) $visitor_status = 'Completed';
     $visitor_notes_raw = trim((string)($_POST['visitor_notes'] ?? ''));
-    // Preserve any existing cancellation marker; do not strip it during edit
     $existing_cancel_marker = '';
     if (preg_match('/\[CANCELLED by [^\]]+\]/i', $visitor_notes_raw, $cm)) {
         $existing_cancel_marker = ' ' . $cm[0];
@@ -546,8 +549,6 @@ if ($can_record && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_mu
 
 // ============================================
 // CANCEL SERVICE - HIDES SALE FROM TRANSACTION TABLE
-// Marks payment_status as 'Unpaid' + adds [CANCELLED by agent: ...] marker to notes.
-// The transaction table excludes rows with this marker.
 // ============================================
 if ($can_record && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_single_service'])) {
     $sale_id = (int)($_POST['sale_id'] ?? 0);
@@ -562,7 +563,6 @@ if ($can_record && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel
         $cancel_reason = 'Cancelled by agent';
     }
 
-    // Look up sale and its visitor
     $sale_check = mysqli_query($conn, "SELECT sl.id, sl.visitor_id, sl.amount, v.notes AS visitor_notes
                                        FROM sales sl
                                        LEFT JOIN visitors v ON sl.visitor_id = v.id
@@ -578,39 +578,34 @@ if ($can_record && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel
     $visitor_id = (int)($sale_data['visitor_id'] ?? 0);
     $previous_notes = (string)($sale_data['visitor_notes'] ?? '');
 
-    // Already cancelled?
     if (stripos($previous_notes, '[CANCELLED by') !== false) {
         setFlashMessage('⚠️ This service is already cancelled.', 'warning');
         header("Location: " . $_SERVER['PHP_SELF']);
         exit();
     }
 
-    // Build a fresh cancellation marker, preserving other notes
     $existing_notes_clean = preg_replace('/\[CANCELLED by [^\]]+\]/i', '', $previous_notes);
     $existing_notes_clean = trim($existing_notes_clean);
     if ($existing_notes_clean !== '') $existing_notes_clean .= ' ';
     $new_notes = $existing_notes_clean . makeCancelStamp($agent_name, 'agent', $cancel_reason);
     $safe_notes = mysqli_real_escape_string($conn, $new_notes);
 
-    // 1. Mark the sale as Unpaid (available ENUM value) - keeps it out of revenue
     $update_sale = "UPDATE sales SET payment_status = 'Unpaid' WHERE id = $sale_id AND agent_id = $agent_id";
     if (!mysqli_query($conn, $update_sale)) {
-        error_log(sisDbErrorMessage($conn));
-        setFlashMessage(sisDbErrorMessage($conn), 'danger');
+        error_log("CANCEL ERROR (sale): " . mysqli_error($conn));
+        setFlashMessage('❌ Failed to update sale status: ' . mysqli_error($conn), 'danger');
         header("Location: " . $_SERVER['PHP_SELF']);
         exit();
     }
 
-    // 2. Add cancellation marker to visitor notes (this is how the UI hides the row)
     if ($visitor_id > 0) {
         $update_visitor = "UPDATE visitors SET status = 'Cancelled', notes = '$safe_notes' 
                            WHERE id = $visitor_id AND agent_id = $agent_id";
         if (!mysqli_query($conn, $update_visitor)) {
-            error_log(sisDbErrorMessage($conn));
+            error_log("CANCEL ERROR (visitor): " . mysqli_error($conn));
         }
     }
 
-    // 3. Full audit trail (existing table, no schema change needed)
     if (function_exists('auditAction')) {
         auditAction($conn, 'CANCEL_SALE', $sale_id, 'Cancelled by agent. Reason: ' . $cancel_reason);
     }
@@ -702,9 +697,6 @@ $salesHandleExpr = tableColumnExists($conn, 'sales', 'handle_seconds') ? 'sl.han
 $salesStartedExpr = tableColumnExists($conn, 'sales', 'handle_started_at') ? 'sl.handle_started_at' : 'NULL';
 $salesCompletedExpr = tableColumnExists($conn, 'sales', 'handle_completed_at') ? 'sl.handle_completed_at' : 'NULL';
 $visitorHandleExpr = tableColumnExists($conn, 'visitors', 'handling_seconds') ? 'v.handling_seconds' : 'NULL';
-
-// FIXED: Exclude cancelled sales from the transaction table.
-// Cancelled sales have the [CANCELLED by ...] marker in visitor notes.
 $sales_query = "SELECT sl.*, 
                        CASE WHEN sl.amount < 0 THEN ABS(sl.amount) ELSE sl.amount END as display_amount,
                        COALESCE($salesHandleExpr, $visitorHandleExpr) as row_handle_seconds,
@@ -762,7 +754,6 @@ $services_json = json_encode($services_for_modal);
 <link rel="stylesheet" href="<?php echo appAsset('assets/css/sis-theme.css'); ?>">
     <link rel="icon" type="image/svg+xml" href="<?php echo appAsset('assets/images/favicon.svg'); ?>">
     <style>
-        /* Cancelled row styling - rows are now excluded from the table so this is minimal fallback */
         .sis-tt-row.is-cancelled {
             opacity: 0.65;
             background: #fff5f5 !important;
@@ -1048,9 +1039,11 @@ sisRenderLayoutStart(
                                 <td class="text-end">
                                     <?php if ($sisCanUseTransactionActions): ?>
                                     <div class="sis-tt-actions">
+                                        <?php /* EDIT BUTTON DISABLED — agents cannot edit sales anymore
                                         <button type="button" class="btn btn-sm btn-outline-primary" title="Edit record" onclick='openEditSaleModal(<?php echo (int)$row["id"]; ?>, <?php echo json_encode($amount); ?>, <?php echo json_encode($payment_status); ?>, <?php echo json_encode($row["payment_date"]); ?>, <?php echo $is_withdrawal ? "true" : "false"; ?>, <?php echo htmlspecialchars(json_encode($recordPayload), ENT_QUOTES, "UTF-8"); ?>)'>
                                             <i class="bi bi-pencil-square"></i><span>Edit</span>
                                         </button>
+                                        */ ?>
                                         <div class="dropdown">
                                             <button type="button" class="btn btn-sm btn-light border" data-bs-toggle="dropdown" aria-expanded="false" title="More actions">
                                                 <i class="bi bi-three-dots-vertical"></i>
@@ -1111,6 +1104,7 @@ sisRenderLayoutStart(
         <?php endif; ?>
 
     
+    <!-- EDIT SALE MODAL — DISABLED (agents cannot edit sales)
     <div class="modal-overlay" id="editSaleModal" onclick="closeModalOnBackdrop(event)">
         <div class="modal-container large">
             <div class="modal-header">
@@ -1185,10 +1179,10 @@ sisRenderLayoutStart(
             </div>
         </div>
     </div>
+    -->
 
     <!-- ============================================ -->
     <!-- CANCEL SERVICE MODAL -->
-    <!-- Cancelled sales are removed from the transaction table -->
     <!-- ============================================ -->
     <div class="modal-overlay" id="cancelServiceModal" onclick="closeCancelModalOnBackdrop(event)">
         <div class="modal-container">
@@ -1386,6 +1380,9 @@ sisRenderLayoutStart(
             }
         }
 
+        // EDIT MODAL DISABLED — agents cannot edit sales anymore
+        // function openEditSaleModal(...) { ... }  — kept for reference only
+        /*
         function openEditSaleModal(saleId, amount, paymentStatus, paymentDate, isWithdrawal, recordData) {
             recordData = recordData || {};
             ensureEditDropdownOptions();
@@ -1422,8 +1419,14 @@ sisRenderLayoutStart(
             if (modal) modal.classList.remove('open');
             document.body.style.overflow = '';
         }
-        function closeModalOnBackdrop(e) { if (e.target === document.getElementById('editSaleModal')) closeEditSaleModal(); if (e.target === document.getElementById('multiServiceModal')) closeMultiServiceModal(); }
         function submitEditSale() { document.getElementById('editSaleForm').submit(); }
+        */
+        // Placeholders so existing onclick="closeEditSaleModal()" and Escape key handlers don't error
+        function openEditSaleModal() { alert('Editing sales is disabled.'); }
+        function closeEditSaleModal() { /* no-op */ }
+        function submitEditSale() { /* no-op */ }
+
+        function closeModalOnBackdrop(e) { if (e.target === document.getElementById('multiServiceModal')) closeMultiServiceModal(); }
 
         // ============================================
         // CANCEL SERVICE MODAL
